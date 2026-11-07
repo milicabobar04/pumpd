@@ -1,0 +1,1722 @@
+openapi: 3.0.3
+info:
+  title: Pumpd API
+  version: 1.0.0
+  description: Zvanična API specifikacija za Pumpd aplikaciju zasnovana na ugovoru. 
+
+servers:
+  - url: http://localhost:8080/api 
+    description: Lokalni razvojni server
+
+security:
+  - bearerAuth: [] 
+
+paths:
+  # ==========================================
+  # 1. Autentifikacija
+  # ==========================================
+  /auth/login:
+    post:
+      summary: Prijava na sistem (SU-03) 
+      security: [] # Javno
+      tags: [ Autentifikacija ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Uspješna prijava 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  surname: { type: string }
+                  email: { type: string }
+                  role: { type: string, enum: [MEMBER, TRAINER, WORKER, ADMIN] }
+                  token: { type: string }
+        '401':
+          $ref: '#/components/responses/Error'
+
+  /auth/logout:
+    post:
+      summary: Odjava sa sistema (SU-04) 
+      tags: [ Autentifikacija ]
+      responses:
+        '200':
+          description: Uspješna odjava
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+
+  # ==========================================
+  # 2. Nalog i profil
+  # ==========================================
+  /users/my-profile:
+    get:
+      summary: Pregled sopstvenog naloga (SU-06) 
+      tags: [ Nalog i profil ]
+      responses:
+        '200':
+          description: Podaci o nalogu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      summary: Uređivanje naloga (SU-08) 
+      tags: [ Nalog i profil ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                surname: { type: string }
+                birthYear: { type: integer, nullable: true }
+                weight: { type: number, nullable: true }
+                height: { type: number, nullable: true }
+      responses:
+        '200':
+          description: Uspješno uređivanje
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+
+  /membership/my-status:
+    get:
+      summary: Pregled podataka o članarini (SU-09) 
+      tags: [ Nalog i profil ]
+      responses:
+        '200':
+          description: Status članarine
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentDate: { type: string, format: date }
+                  validUntil: { type: string, format: date }
+                  price: { type: number }
+                  isActive: { type: boolean }
+                  qrCodeUrl: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /users/training-history:
+    get:
+      summary: Pregled prethodnih treninga (SU-24) 
+      tags: [ Nalog i profil ]
+      responses:
+        '200':
+          description: Lista treninga
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    trainingId: { type: integer }
+                    name: { type: string }
+                    date: { type: string, format: date }
+                    type: { type: string, enum: [SOLO, GROUP] }
+
+  # ==========================================
+  # 3. Planovi treninga
+  # ==========================================
+  /training-plans:
+    get:
+      summary: Pregled planova treninga (SU-21) 
+      tags: [ Planovi treninga ]
+      responses:
+        '200':
+          description: Lista planova
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    planId: { type: integer }
+                    name: { type: string }
+                    description: { type: string, nullable: true }
+                    durationMinutes: { type: integer }
+    post:
+      summary: Kreiranje plana treninga (SU-23) 
+      tags: [ Planovi treninga ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string, nullable: true }
+                durationMinutes: { type: integer }
+                exercises:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      numSets: { type: integer }
+                      numRepetitions: { type: integer }
+      responses:
+        '201':
+          description: Plan kreiran
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  planId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+
+  /training-plans/{planId}:
+    get:
+      summary: Pregled plana (SU-22) 
+      tags: [ Planovi treninga ]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalji plana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  planId: { type: integer }
+                  name: { type: string }
+                  description: { type: string, nullable: true }
+                  durationMinutes: { type: integer }
+                  exercises:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        exerciseId: { type: integer }
+                        name: { type: string }
+                        numSets: { type: integer }
+                        numRepetitions: { type: integer }
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    put:
+      summary: Uređivanje plana treninga (SU-25) 
+      tags: [ Planovi treninga ]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string, nullable: true }
+                durationMinutes: { type: integer }
+                exercises:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      exerciseId: { type: integer, nullable: true }
+                      name: { type: string }
+                      numSets: { type: integer }
+                      numRepetitions: { type: integer }
+      responses:
+        '200':
+          description: Uspješno uređeno
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Brisanje plana treninga (SU-26) 
+      tags: [ Planovi treninga ]
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Plan obrisan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 4. Prijave problema
+  # ==========================================
+  /issues:
+    post:
+      summary: Prijava problema (SU-01) 
+      security:
+        - {}
+        - bearerAuth: []
+      tags: [ Prijave problema ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+      responses:
+        '201':
+          description: Uspješno kreirano
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issueId: { type: integer }
+                  status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
+                  message: { type: string }
+
+  /admin/issues:
+    get:
+      summary: Pregled prijavljenih problema (SU-59) 
+      tags: [ Prijave problema ]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [UNPROCESSED, IN_PROGRESS, PROCESSED]
+      responses:
+        '200':
+          description: Lista problema
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    issueId: { type: integer }
+                    title: { type: string }
+                    description: { type: string }
+                    status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
+                    reportDate: { type: string, format: date }
+
+  /admin/issues/{issueId}:
+    patch:
+      summary: Obrada prijavljenog problema (SU-59) 
+      tags: [ Prijave problema ]
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
+      responses:
+        '200':
+          description: Problem obrađen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issueId: { type: integer }
+                  status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 5. Teretana
+  # ==========================================
+  /gym/info:
+    get:
+      summary: Pregled informacija o teretani (SU-02) 
+      security: []
+      tags: [ Teretana ]
+      responses:
+        '200':
+          description: Podaci o teretani
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GymInfo'
+    put:
+      summary: Uređivanje informacija o teretani (SU-50) 
+      tags: [ Teretana ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GymInfo'
+      responses:
+        '200':
+          description: Informacije uređene
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+
+  /gym/occupancy:
+    get:
+      summary: Pregled zauzetosti teretane (SU-10) 
+      tags: [ Teretana ]
+      responses:
+        '200':
+          description: Zauzetost
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentMembers: { type: integer }
+                  capacity: { type: integer, nullable: true }
+
+  # ==========================================
+  # 6. Obavještenja
+  # ==========================================
+  /notifications:
+    get:
+      summary: Pregled obavještenja (SU-05) 
+      tags: [ Obavještenja ]
+      responses:
+        '200':
+          description: Lista obavještenja
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    notificationId: { type: integer }
+                    content: { type: string }
+                    date: { type: string, format: date-time }
+                    isSeen: { type: boolean }
+
+  # ==========================================
+  # 7. Treneri, praćenje i recenzije
+  # ==========================================
+  /trainers:
+    get:
+      summary: Pregled svih naloga trenera (SU-11) 
+      tags: [ Treneri ]
+      responses:
+        '200':
+          description: Lista trenera
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    trainerId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+                    averageGrade: { type: number, nullable: true }
+
+  /trainers/{trainerId}:
+    get:
+      summary: Pregled naloga trenera (SU-12) 
+      tags: [ Treneri ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalji trenera
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trainerId: { type: integer }
+                  name: { type: string }
+                  surname: { type: string }
+                  biography: { type: string, nullable: true }
+                  averageGrade: { type: number, nullable: true }
+                  followStatus: { type: string, enum: [NONE, PENDING, ACCEPTED] }
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        reviewId: { type: integer }
+                        memberName: { type: string }
+                        grade: { type: integer }
+                        comment: { type: string }
+                        date: { type: string, format: date }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /trainers/{trainerId}/follow:
+    post:
+      summary: Slanje zahtjeva za praćenje naloga trenera (SU-13) 
+      tags: [ Treneri ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Zahtjev poslat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  followRequestId: { type: integer }
+                  status: { type: string, enum: [PENDING] }
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Prekid praćenja naloga trenera (SU-15) 
+      tags: [ Treneri ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Praćenje prekinuto
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /trainers/{trainerId}/reviews:
+    post:
+      summary: Ostavljanje recenzije treneru (SU-14) 
+      tags: [ Treneri ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade: { type: integer }
+                comment: { type: string }
+      responses:
+        '201':
+          description: Recenzija dodata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviewId: { type: integer }
+                  averageGrade: { type: number }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /trainer/reviews:
+    get:
+      summary: Pregled recenzija (SU-07) 
+      tags: [ Treneri ]
+      responses:
+        '200':
+          description: Lista recenzija trenera
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  averageGrade: { type: number, nullable: true }
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        reviewId: { type: integer }
+                        memberName: { type: string }
+                        grade: { type: integer }
+                        comment: { type: string }
+                        date: { type: string, format: date }
+
+  # ==========================================
+  # 8. Objave
+  # ==========================================
+  /posts/feed:
+    get:
+      summary: Pregled personalizovane stranice (SU-16) 
+      tags: [ Objave ]
+      responses:
+        '200':
+          description: Feed objava
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+  /posts/{postId}/save:
+    post:
+      summary: Čuvanje objave (SU-17) 
+      tags: [ Objave ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Objava sačuvana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Brisanje sačuvane objave (SU-28) 
+      tags: [ Objave ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Objava uklonjena iz sačuvanih
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /posts/saved:
+    get:
+      summary: Pregled sačuvanih objava (SU-27) 
+      tags: [ Objave ]
+      responses:
+        '200':
+          description: Lista sačuvanih objava
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+
+  /posts/my-posts:
+    get:
+      summary: Pregled sopstvenih objava (SU-29) 
+      tags: [ Objave ]
+      responses:
+        '200':
+          description: Objave trenera
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    postId: { type: integer }
+                    content: { type: string }
+                    imageUrl: { type: string, nullable: true }
+                    postTimestamp: { type: string, format: date-time }
+
+  /posts:
+    post:
+      summary: Dodavanje objave (SU-30) 
+      tags: [ Objave ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content: { type: string }
+                imageUrl: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Objava dodata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+
+  /posts/{postId}:
+    delete:
+      summary: Brisanje sopstvene objave (SU-31) 
+      tags: [ Objave ]
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Objava obrisana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 9. Grupni treninzi – pregled i prijava
+  # ==========================================
+  /group-trainings:
+    get:
+      summary: Pregled termina grupnih treninga (SU-18, SU-43) 
+      tags: [ Grupni treninzi ]
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: trainerId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista termina
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sessionId: { type: integer }
+                    groupId: { type: integer }
+                    name: { type: string }
+                    trainerId: { type: integer }
+                    trainerName: { type: string }
+                    startTime: { type: string, format: date-time }
+                    durationMinutes: { type: integer }
+                    enrolledCount: { type: integer }
+                    maxMembers: { type: integer }
+                    enrollmentStatus: { type: string, enum: [NONE, PENDING, ACCEPTED, REJECTED] }
+
+  /group-trainings/{sessionId}/enrollment:
+    post:
+      summary: Slanje zahtjeva za prijavu na termin (SU-19) 
+      tags: [ Grupni treninzi ]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Zahtjev poslat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId: { type: integer }
+                  status: { type: string, enum: [PENDING] }
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Odjava sa termina (SU-20) 
+      tags: [ Grupni treninzi ]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Odjava uspješna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 10. Trener – praćenje, termini i grupe
+  # ==========================================
+  /trainer/follow-requests:
+    get:
+      summary: Pregled zahtjeva za praćenje (SU-32) 
+      tags: [ Trener ]
+      responses:
+        '200':
+          description: Lista zahtjeva
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    requestId: { type: integer }
+                    memberId: { type: integer }
+                    memberName: { type: string }
+                    requestDate: { type: string, format: date }
+
+  /trainer/follow-requests/{requestId}:
+    patch:
+      summary: Upravljanje zahtjevom za praćenje (SU-33) 
+      tags: [ Trener ]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [ACCEPTED, REJECTED] }
+      responses:
+        '200':
+          description: Zahtjev obrađen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /trainer/followers:
+    get:
+      summary: Pregled članova koji prate trenera (SU-60) 
+      tags: [ Trener ]
+      responses:
+        '200':
+          description: Lista pratilaca
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    memberId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+
+  /trainer/schedule:
+    get:
+      summary: Pregled dnevnog rasporeda (SU-36) 
+      tags: [ Trener ]
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Dnevni raspored
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sessionId: { type: integer }
+                    name: { type: string }
+                    startTime: { type: string, format: date-time }
+                    durationMinutes: { type: integer }
+                    enrolledCount: { type: integer }
+                    maxMembers: { type: integer }
+
+  /trainer/group-trainings:
+    post:
+      summary: Dodavanje termina (SU-35) 
+      tags: [ Trener ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                startTime: { type: string, format: date-time }
+                durationMinutes: { type: integer }
+                maxMembers: { type: integer }
+      responses:
+        '201':
+          description: Termin dodat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId: { type: integer }
+                  groupId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /trainer/group-trainings/{sessionId}:
+    put:
+      summary: Uređivanje termina grupnih treninga (SU-40) 
+      tags: [ Trener ]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                startTime: { type: string, format: date-time }
+                durationMinutes: { type: integer }
+                maxMembers: { type: integer }
+      responses:
+        '200':
+          description: Termin uređen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Brisanje termina (SU-37) 
+      tags: [ Trener ]
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Termin obrisan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /trainer/groups:
+    get:
+      summary: Pregled svih grupa (SU-34) 
+      tags: [ Trener ]
+      responses:
+        '200':
+          description: Lista grupa
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    groupId: { type: integer }
+                    sessionId: { type: integer }
+                    name: { type: string }
+                    startTime: { type: string, format: date-time }
+                    memberCount: { type: integer }
+                    maxMembers: { type: integer }
+
+  /trainer/groups/{groupId}/members:
+    get:
+      summary: Pregled svih članova grupe (SU-38) 
+      tags: [ Trener ]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Članovi grupe
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    memberId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: Dodavanje člana u grupu (SU-60) 
+      tags: [ Trener ]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                memberId: { type: integer }
+      responses:
+        '201':
+          description: Član dodat u grupu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /trainer/groups/{groupId}/members/{memberId}:
+    delete:
+      summary: Uklanjanje člana iz grupe (SU-39) 
+      tags: [ Trener ]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Član uklonjen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /trainer/group-requests:
+    get:
+      summary: Pregled zahtjeva za grupne treninge (SU-41) 
+      tags: [ Trener ]
+      parameters:
+        - name: sessionId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista zahtjeva
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    requestId: { type: integer }
+                    memberId: { type: integer }
+                    memberName: { type: string }
+                    sessionId: { type: integer }
+                    sessionName: { type: string }
+                    startTime: { type: string, format: date-time }
+                    enrolledCount: { type: integer }
+                    maxMembers: { type: integer }
+                    requestDate: { type: string, format: date }
+
+  /trainer/group-requests/{requestId}:
+    patch:
+      summary: Upravljanje zahtjevima za grupne treninge (SU-42) 
+      tags: [ Trener ]
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [ACCEPTED, REJECTED] }
+      responses:
+        '200':
+          description: Zahtjev obrađen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 11. Zaposleni – upravljanje članovima
+  # ==========================================
+  /worker/members:
+    get:
+      summary: Pregled svih članova (SU-44) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista članova
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    memberId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+                    email: { type: string }
+                    membershipActive: { type: boolean }
+    post:
+      summary: Dodavanje člana (SU-46) 
+      tags: [ Zaposleni ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                surname: { type: string }
+                email: { type: string }
+                password: { type: string }
+                birthYear: { type: integer, nullable: true }
+                weight: { type: number, nullable: true }
+                height: { type: number, nullable: true }
+      responses:
+        '201':
+          description: Član dodat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /worker/members/{memberId}:
+    get:
+      summary: Pregled člana (SU-45) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalji člana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberId: { type: integer }
+                  name: { type: string }
+                  surname: { type: string }
+                  email: { type: string }
+                  birthYear: { type: integer, nullable: true }
+                  weight: { type: number, nullable: true }
+                  height: { type: number, nullable: true }
+                  membershipActive: { type: boolean }
+                  membershipValidUntil: { type: string, format: date, nullable: true }
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Uklanjanje člana (SU-47) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Član uklonjen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /worker/members/{memberId}/membership:
+    get:
+      summary: Pregled statusa članarine (SU-48) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status članarine
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentDate: { type: string, format: date }
+                  validUntil: { type: string, format: date }
+                  price: { type: number }
+                  isActive: { type: boolean }
+        '404':
+          $ref: '#/components/responses/Error'
+    put:
+      summary: Uređivanje statusa članarine (SU-49) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentDate: { type: string, format: date }
+                validUntil: { type: string, format: date }
+                price: { type: number }
+      responses:
+        '200':
+          description: Članarina uređena
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /worker/members/{memberId}/membership/extend:
+    post:
+      summary: Produženje članarine (SU-49) 
+      tags: [ Zaposleni ]
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                numMonths: { type: integer }
+      responses:
+        '200':
+          description: Članarina produžena
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newValidUntil: { type: string, format: date }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /worker/attendance/entry:
+    post:
+      summary: Evidencija dolaska skeniranjem QR koda (SU-10) 
+      tags: [ Zaposleni ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrCode: { type: string }
+      responses:
+        '200':
+          description: Dolazak evidentiran
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberId: { type: integer }
+                  memberName: { type: string }
+                  isAllowed: { type: boolean }
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /worker/attendance/exit:
+    post:
+      summary: Evidencija izlaska skeniranjem QR koda 
+      tags: [ Zaposleni ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrCode: { type: string }
+      responses:
+        '200':
+          description: Izlazak evidentiran
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberId: { type: integer }
+                  memberName: { type: string }
+                  exitTime: { type: string, format: date-time }
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  # ==========================================
+  # 12. Administrator – treneri i radnici
+  # ==========================================
+  /admin/trainers:
+    get:
+      summary: Pregled svih trenera (SU-51) 
+      tags: [ Administrator ]
+      responses:
+        '200':
+          description: Lista trenera
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    trainerId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+                    email: { type: string }
+    post:
+      summary: Dodavanje trenera (SU-53) 
+      tags: [ Administrator ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                surname: { type: string }
+                email: { type: string }
+                password: { type: string }
+                biography: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Trener dodat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trainerId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /admin/trainers/{trainerId}:
+    get:
+      summary: Pregled trenera (SU-52) 
+      tags: [ Administrator ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalji trenera
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trainerId: { type: integer }
+                  name: { type: string }
+                  surname: { type: string }
+                  email: { type: string }
+                  biography: { type: string, nullable: true }
+                  averageGrade: { type: number, nullable: true }
+                  followerCount: { type: integer }
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Uklanjanje trenera (SU-54) 
+      tags: [ Administrator ]
+      parameters:
+        - name: trainerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Trener uklonjen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /admin/workers:
+    get:
+      summary: Pregled svih radnika (SU-55) 
+      tags: [ Administrator ]
+      responses:
+        '200':
+          description: Lista radnika
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    workerId: { type: integer }
+                    name: { type: string }
+                    surname: { type: string }
+                    email: { type: string }
+    post:
+      summary: Dodavanje radnika (SU-57) 
+      tags: [ Administrator ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                surname: { type: string }
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '201':
+          description: Radnik dodat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workerId: { type: integer }
+                  message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /admin/workers/{workerId}:
+    get:
+      summary: Pregled radnika (SU-56) 
+      tags: [ Administrator ]
+      parameters:
+        - name: workerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalji radnika
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workerId: { type: integer }
+                  name: { type: string }
+                  surname: { type: string }
+                  email: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      summary: Uklanjanje radnika (SU-58) 
+      tags: [ Administrator ]
+      parameters:
+        - name: workerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Radnik uklonjen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '404':
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
+
+  schemas:
+    # 0. Opšte konvencije
+    ErrorResponse:
+      type: object
+      properties:
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string } 
+
+    # Reusable schema: Profil (2.1)
+    UserProfile:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        surname: { type: string }
+        email: { type: string }
+        birthYear: { type: integer, nullable: true }
+        weight: { type: number, nullable: true }
+        height: { type: number, nullable: true }
+        role: { type: string, enum: [MEMBER, TRAINER, WORKER, ADMIN] } 
+
+    # Reusable schema: Teretana (5.1, 5.2)
+    GymInfo:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        membershipPrice: { type: number }
+        dateOfEstablishment: { type: string, format: date }
+        workingHours: { type: string } 
+        
+    # Reusable schema: Objave (8.1, 8.3)
+    Post:
+      type: object
+      properties:
+        postId: { type: integer }
+        trainerId: { type: integer }
+        trainerName: { type: string }
+        content: { type: string }
+        imageUrl: { type: string, nullable: true }
+        postTimestamp: { type: string, format: date-time }
+        isSaved: { type: boolean } 
+
+  responses:
+    Error:
+      description: Standardni format greške (npr. 400, 401, 403, 404, 409) 
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
