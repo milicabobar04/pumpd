@@ -39,7 +39,8 @@ public class Problem {
 	@JoinColumn(name="nalog_idnalog")
 	private Nalog prijavio;
 	
-	@ManyToOne(fetch=FetchType.LAZY, optional=false)
+	/** Administrator koji je zadnji promijenio status; neobrađen problem ga nema (NULL). */
+	@ManyToOne(fetch=FetchType.LAZY, optional=true)
 	@JoinColumn(name="administrator_zaposleni_nalog_idnalog")
 	private Administrator obradio;
 

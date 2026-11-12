@@ -241,7 +241,9 @@ class ClanoviControllerTest {
             "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"kratka\"}",
             "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"weight\":-5}",
             "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"height\":301}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"birthYear\":1899}"
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"birthYear\":1899}",
+            // decimalni broj u cjelobrojnom polju se ne skraćuje tiho (accept-float-as-int=false)
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"birthYear\":2000.5}"
     })
     void nevalidniPodaciVracaju400(String tijelo) throws Exception {
         posalji(tijelo, Uloga.WORKER)
