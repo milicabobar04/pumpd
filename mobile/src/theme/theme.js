@@ -41,6 +41,7 @@ const colors = {
   shadow: 'rgba(0, 0, 0, 0.25)',
   white96: 'rgba(255, 255, 255, 0.96)',
   white88: 'rgba(255, 255, 255, 0.88)',
+  overlay: 'rgba(0, 0, 0, 0.6)', // zatamnjenje iza dijaloga
 };
 
 

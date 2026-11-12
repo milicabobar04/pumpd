@@ -16,6 +16,7 @@ export const buttonSizes = {
   chip: { width: 71, height: 17.137929916381836 },
   contentChip: { width: 104, height: 17 },
   textLink: { height: 25.2 },
+  dialog: { height: 44 },
 };
 
 const MIN_TOUCH = 48;
@@ -239,6 +240,49 @@ export const buttons = {
       textDecorationLine: 'underline',
     },
     hitSlop: touchArea(buttonSizes.textLink.height),
+  },
+
+  // Odustani (dugme u dijalogu)
+  secondary: {
+    container: {
+      ...primaryContainer,
+      backgroundColor: 'transparent',
+      borderColor: colors.border,
+      minHeight: buttonSizes.dialog.height,
+      paddingVertical: spacing.px8,
+      paddingHorizontal: spacing.px16,
+    },
+    label: {
+      ...primaryLabel,
+      color: colors.textLight,
+    },
+  },
+
+  // Potvrdi (npr. Odjavi se)
+  confirm: {
+    container: {
+      ...primaryContainer,
+      minHeight: buttonSizes.dialog.height,
+      paddingVertical: spacing.px8,
+      paddingHorizontal: spacing.px16,
+    },
+    label: { ...primaryLabel },
+  },
+
+  // Obriši (brisanje člana, trenera, plana, termina…)
+  danger: {
+    container: {
+      ...primaryContainer,
+      backgroundColor: colors.accentRed,
+      borderColor: colors.accentRed,
+      minHeight: buttonSizes.dialog.height,
+      paddingVertical: spacing.px8,
+      paddingHorizontal: spacing.px16,
+    },
+    label: {
+      ...primaryLabel,
+      color: colors.textPrimary,
+    },
   },
 };
 

@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 
-import { Button } from './src/components/Button';
-
-import { theme, useAppFonts } from './src/theme';
+import { Button, Card } from './src/components';
+import { theme, cards, useAppFonts } from './src/theme';
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -32,6 +31,11 @@ export default function App() {
         variant="chip"
         onPress={() => alert('Kliknut chip!')}
       />
+
+      {/* Test kartice (privremeno) */}
+      <Card variant="loginPanel">
+        <Text style={cards.membership.value}>Test kartice</Text>
+      </Card>
     </View>
   );
 }
