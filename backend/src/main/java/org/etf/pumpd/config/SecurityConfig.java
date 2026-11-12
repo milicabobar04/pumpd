@@ -49,7 +49,10 @@ public class SecurityConfig {
 				.requestMatchers("/error").permitAll()
 				.requestMatchers("/api/worker/attendance/**").hasRole("WORKER")          
 				.requestMatchers("/api/worker/**").hasAnyRole("WORKER", "ADMIN")         
-				.requestMatchers("/api/admin/**").hasRole("ADMIN")                      	
+				.requestMatchers("/api/admin/**").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.PUT, "/api/gym/info").hasRole("ADMIN")
+				.requestMatchers("/api/trainers/**").hasRole("MEMBER")
+				.requestMatchers("/api/trainer/**").hasRole("TRAINER")
 				.anyRequest().authenticated());
 
 		return http.build();

@@ -23,7 +23,10 @@ import org.etf.pumpd.entity.Nalog;
 import org.etf.pumpd.entity.Trener;
 import org.etf.pumpd.exception.KonfliktException;
 import org.etf.pumpd.exception.ResursNijePronadjenException;
+import org.etf.pumpd.enums.StatusPracenja;
 import org.etf.pumpd.repository.NalogRepository;
+import org.etf.pumpd.repository.PracenjeRepository;
+import org.etf.pumpd.repository.RecenzijaRepository;
 import org.etf.pumpd.repository.TrenerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
@@ -37,15 +40,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 class AdminTreneriServiceTest {
 
     private TrenerRepository trenerRepository;
+    private RecenzijaRepository recenzijaRepository;
+    private PracenjeRepository pracenjeRepository;
     private NalogRepository nalogRepository;
     private AdminTreneriService servis;
 
     @BeforeEach
     void postavi() {
         trenerRepository = mock(TrenerRepository.class);
+        recenzijaRepository = mock(RecenzijaRepository.class);
+        pracenjeRepository = mock(PracenjeRepository.class);
         nalogRepository = mock(NalogRepository.class);
         // pravi NoviNalogService nad mock repozitorijumom, da test pokriva cijeli tok dodavanja trenera
-        servis = new AdminTreneriService(trenerRepository,
+        servis = new AdminTreneriService(trenerRepository, recenzijaRepository, pracenjeRepository,
                 new NoviNalogService(nalogRepository, new BCryptPasswordEncoder(4)));
     }
 
@@ -58,8 +65,9 @@ class AdminTreneriServiceTest {
     private void postojiTrener(Trener trener, Double prosjek, long pratilaca) {
         int id = trener.getNalog().getId();
         when(trenerRepository.pronadjiAktivnog(id)).thenReturn(Optional.of(trener));
-        when(trenerRepository.prosjecnaOcjena(id)).thenReturn(prosjek);
-        when(trenerRepository.brojPratilaca(id)).thenReturn(pratilaca);
+        when(recenzijaRepository.prosjecnaOcjena(id)).thenReturn(prosjek);
+        // broje se samo prihvaćena praćenja
+        when(pracenjeRepository.brojPratilaca(id, StatusPracenja.ACCEPTED)).thenReturn(pratilaca);
     }
 
     // ------------------------------------------------------------ 12.1 lista trenera

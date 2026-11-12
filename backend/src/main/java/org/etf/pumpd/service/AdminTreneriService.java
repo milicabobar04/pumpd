@@ -13,6 +13,9 @@ import org.etf.pumpd.dto.TrenerListaDto;
 import org.etf.pumpd.entity.Nalog;
 import org.etf.pumpd.entity.Trener;
 import org.etf.pumpd.exception.ResursNijePronadjenException;
+import org.etf.pumpd.enums.StatusPracenja;
+import org.etf.pumpd.repository.PracenjeRepository;
+import org.etf.pumpd.repository.RecenzijaRepository;
 import org.etf.pumpd.repository.TrenerRepository;
 
 /** Upravljanje trenerima za administratora, rute 12.1–12.4. */
@@ -20,10 +23,15 @@ import org.etf.pumpd.repository.TrenerRepository;
 public class AdminTreneriService {
 
 	private final TrenerRepository trenerRepository;
+	private final RecenzijaRepository recenzijaRepository;
+	private final PracenjeRepository pracenjeRepository;
 	private final NoviNalogService noviNalogService;
 
-	public AdminTreneriService(TrenerRepository trenerRepository, NoviNalogService noviNalogService) {
+	public AdminTreneriService(TrenerRepository trenerRepository, RecenzijaRepository recenzijaRepository,
+			PracenjeRepository pracenjeRepository, NoviNalogService noviNalogService) {
 		this.trenerRepository = trenerRepository;
+		this.recenzijaRepository = recenzijaRepository;
+		this.pracenjeRepository = pracenjeRepository;
 		this.noviNalogService = noviNalogService;
 	}
 
@@ -48,8 +56,8 @@ public class AdminTreneriService {
 				nalog.getPrezime(),
 				nalog.getEmail(),
 				trener.getOpis(),
-				zaokruziOcjenu(trenerRepository.prosjecnaOcjena(trainerId)),
-				Math.toIntExact(trenerRepository.brojPratilaca(trainerId)));
+				zaokruziOcjenu(recenzijaRepository.prosjecnaOcjena(trainerId)),
+				Math.toIntExact(pracenjeRepository.brojPratilaca(trainerId, StatusPracenja.ACCEPTED)));
 	}
 
 	/** 12.3: novi nalog sa ulogom TRAINER. Nalog i trener se upisuju u istoj transakciji. */
