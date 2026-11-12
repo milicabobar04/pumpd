@@ -12,14 +12,14 @@ public class Radnik {
 	@OneToOne(fetch=FetchType.LAZY, optional=false)
 	@MapsId
 	@JoinColumn(name="zaposleni_nalog_idnalog")
-	private Trener zaposleni;
+	private Zaposleni zaposleni;
 	
 	protected Radnik()
 	{
 		
 	}
 	
-	public Radnik(Trener zaposleni)
+	public Radnik(Zaposleni zaposleni)
 	{
 		this.zaposleni=zaposleni;
 	}
@@ -28,7 +28,7 @@ public class Radnik {
 		return id;
 	}
 
-	public Trener getZaposleni() {
+	public Zaposleni getZaposleni() {
 		return zaposleni;
 	}
 

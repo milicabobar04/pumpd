@@ -30,10 +30,27 @@ public class Nalog {
 	
 	@Column( name="lozinka",nullable=false,length=255)
 	private String lozinka;
-	
+
+	/** Meko brisanje (V6): obrisan nalog ima aktivan = false. Novi nalog je uvijek aktivan. */
+	@Column( name="aktivan",nullable=false)
+	private boolean aktivan = true;
+
 	protected Nalog()
 	{
-		
+
+	}
+
+	/**
+	 * Meko brisanje: nalog postaje neaktivan, a email se zamjenjuje jedinstvenom
+	 * vrijednošću da bi se oslobodio za novi nalog. Ime i prezime ostaju zbog istorije.
+	 */
+	public void deaktiviraj() {
+		this.aktivan = false;
+		this.email = "obrisan-" + id + "@pumpd.invalid";
+	}
+
+	public boolean isAktivan() {
+		return aktivan;
 	}
 
 	public Integer getId() {
