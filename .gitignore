@@ -8,3 +8,5 @@ yarn-debug.log*
 .idea/caches/
 .idea/deviceManager.xml
 .idea/workspace.xml
+# Lokalne env varijable (sablon je mobile/.env.example)
+mobile/.env

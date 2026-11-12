@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:4000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  console.warn('EXPO_PUBLIC_API_URL nije postavljen. Kopiraj mobile/.env.example u mobile/.env.');
+}
+
+let authToken = null;
+let onUnauthorized = null;
+
+export const setAuthToken = (token) => { authToken = token; };
+export const setOnUnauthorized = (callback) => { onUnauthorized = callback; };
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -9,27 +19,21 @@ const apiClient = axios.create({
   },
 });
 
-apiClient.interceptors.request.use(
-  async (config) => {
-    const token = null;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+apiClient.interceptors.request.use((config) => {
+  if (authToken) {
+    config.headers.Authorization = `Bearer ${authToken}`;
   }
-);
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      console.warn('Sesija je istekla ili token nije validan (401 Unauthorized). Preusmjeravanje na login...');
+    if (error.response?.status === 401 && authToken && onUnauthorized) {
+      onUnauthorized();
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

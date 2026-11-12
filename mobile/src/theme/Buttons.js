@@ -17,6 +17,7 @@ export const buttonSizes = {
   contentChip: { width: 104, height: 17 },
   textLink: { height: 25.2 },
   dialog: { height: 44 },
+  menu: { width: 245, height: 48 }, // procijenjeno sa slike, provjeriti u Figmi (Inspect)
 };
 
 const MIN_TOUCH = 48;
@@ -282,6 +283,25 @@ export const buttons = {
     label: {
       ...primaryLabel,
       color: colors.textPrimary,
+    },
+  },
+
+  // Početni meni radnika i administratora (Pregled svih trenera, Obrada problema...)
+  menu: {
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: borderRadius.px8,
+      ...wide(buttonSizes.menu),
+    },
+    label: {
+      fontFamily: fonts.inter600,
+      fontSize: 16,
+      color: colors.textLight,
     },
   },
 };

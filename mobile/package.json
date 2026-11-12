@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "ios": "expo start --ios"
+    "ios": "expo start --ios",
+    "mock": "prism mock ../backend/docs/openapi.yaml --host 0.0.0.0 --port 4010 --errors"
   },
   "dependencies": {
     "@expo-google-fonts/actor": "^0.4.1",
@@ -26,5 +27,8 @@
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
     "react-native-screens": "~4.30.1"
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "^5.16.0"
   }
 }
