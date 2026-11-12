@@ -12,14 +12,14 @@ public class Administrator {
 	@OneToOne(fetch=FetchType.LAZY, optional=false)
 	@MapsId
 	@JoinColumn(name="zaposleni_nalog_idnalog")
-	private Radnik zaposleni;
+	private Zaposleni zaposleni;
 	
 	protected Administrator()
 	{
 		
 	}
 	
-	public Administrator(Radnik zaposleni)
+	public Administrator(Zaposleni zaposleni)
 	{
 		this.zaposleni=zaposleni;
 	}
@@ -29,7 +29,7 @@ public class Administrator {
 	}
 
 	
-	public Radnik getZaposleni() {
+	public Zaposleni getZaposleni() {
 		return zaposleni;
 	}
 
