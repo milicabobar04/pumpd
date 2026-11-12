@@ -47,6 +47,9 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/gym/info").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/issues").permitAll()
 				.requestMatchers("/error").permitAll()
+				.requestMatchers("/api/worker/attendance/**").hasRole("WORKER")          
+				.requestMatchers("/api/worker/**").hasAnyRole("WORKER", "ADMIN")         
+				.requestMatchers("/api/admin/**").hasRole("ADMIN")                      	
 				.anyRequest().authenticated());
 
 		return http.build();
