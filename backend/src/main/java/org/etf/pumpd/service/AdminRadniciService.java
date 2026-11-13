@@ -51,11 +51,12 @@ public class AdminRadniciService {
 	 */
 	@Transactional
 	public DodavanjeRadnikaOdgovor dodajRadnika(DodavanjeRadnikaZahtjev zahtjev) {
-		Nalog nalog = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(), zahtjev.email(),
-				zahtjev.password());
+		NoviNalogService.NoviNalog novi = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(),
+				zahtjev.email());
+		Nalog nalog = novi.nalog();
 		Zaposleni zaposleni = zaposleniRepository.save(new Zaposleni(nalog));
 		radnikRepository.save(new Radnik(zaposleni));
-		return new DodavanjeRadnikaOdgovor(nalog.getId(), "Radnik je uspjesno dodan.");
+		return new DodavanjeRadnikaOdgovor(nalog.getId(), novi.privremenaLozinka(), "Radnik je uspjesno dodan.");
 	}
 
 	/**

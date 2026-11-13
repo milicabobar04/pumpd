@@ -58,9 +58,11 @@ class ClanoviServiceTest {
         clanarinaRepository = mock(ClanarinaRepository.class);
         nalogRepository = mock(NalogRepository.class);
         passwordEncoder = new BCryptPasswordEncoder(4); // mala cijena da test bude brz
+        GeneratorLozinke generatorLozinke = mock(GeneratorLozinke.class);
+        when(generatorLozinke.generisi()).thenReturn("Privremena7k");
         // pravi NoviNalogService nad mock repozitorijumom, da test pokriva cijeli tok dodavanja člana
         servis = new ClanoviService(clanRepository, clanarinaRepository,
-                new NoviNalogService(nalogRepository, passwordEncoder), SAT);
+                new NoviNalogService(nalogRepository, passwordEncoder, generatorLozinke), SAT);
     }
 
     private static Clan clan(int id, String ime, String prezime) {
@@ -232,7 +234,7 @@ class ClanoviServiceTest {
     // ------------------------------------------------------------ 11.3 dodavanje člana
 
     private static DodavanjeClanaZahtjev zahtjev(Integer godina) {
-        return new DodavanjeClanaZahtjev(" Ana ", " Ilić ", " ana@mail.com ", "lozinka123", godina, 60.5, 168.0);
+        return new DodavanjeClanaZahtjev(" Ana ", " Ilić ", " ana@mail.com ", godina, 60.5, 168.0);
     }
 
     /** Baza dodijeli id 11 pri upisu naloga. */
@@ -265,6 +267,7 @@ class ClanoviServiceTest {
 
         assertEquals(11, odgovor.memberId());
         assertEquals("Clan je uspjesno dodan.", odgovor.message());
+        assertEquals("Privremena7k", odgovor.temporaryPassword());
     }
 
     @Test

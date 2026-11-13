@@ -43,7 +43,6 @@ import com.jayway.jsonpath.JsonPath;
 class TokBIntegracioniTest {
 
     private static final String SEED_LOZINKA = "pumpd123";
-    private static final String LOZINKA = "lozinka123";
     private static final AtomicInteger BROJAC = new AtomicInteger();
 
     @Autowired
@@ -111,18 +110,22 @@ class TokBIntegracioniTest {
 
     private Korisnik noviClan(String ime, String prezime) throws Exception {
         String email = jedinstvenEmail("clan");
-        int id = broj(post_(radnik, "/api/worker/members", """
-                {"name":"%s","surname":"%s","email":"%s","password":"%s"}
-                """.formatted(ime, prezime, email, LOZINKA)).andExpect(status().isCreated()), "$.memberId");
-        return new Korisnik(id, prijava(email, LOZINKA));
+        String odgovor = post_(radnik, "/api/worker/members", """
+                {"name":"%s","surname":"%s","email":"%s"}
+                """.formatted(ime, prezime, email)).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = JsonPath.read(odgovor, "$.memberId");
+        return new Korisnik(id, prijava(email, JsonPath.read(odgovor, "$.temporaryPassword")));
     }
 
     private Korisnik noviTrener(String ime, String prezime) throws Exception {
         String email = jedinstvenEmail("trener");
-        int id = broj(post_(admin, "/api/admin/trainers", """
-                {"name":"%s","surname":"%s","email":"%s","password":"%s"}
-                """.formatted(ime, prezime, email, LOZINKA)).andExpect(status().isCreated()), "$.trainerId");
-        return new Korisnik(id, prijava(email, LOZINKA));
+        String odgovor = post_(admin, "/api/admin/trainers", """
+                {"name":"%s","surname":"%s","email":"%s"}
+                """.formatted(ime, prezime, email)).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = JsonPath.read(odgovor, "$.trainerId");
+        return new Korisnik(id, prijava(email, JsonPath.read(odgovor, "$.temporaryPassword")));
     }
 
     private int posaljiZahtjev(Korisnik clan, Korisnik trener) throws Exception {

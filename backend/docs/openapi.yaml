@@ -13,6 +13,8 @@ info:
     - averageGrade je svuda zaokružen na jednu decimalu.
     - Greške su u formatu ErrorResponse; message navodi polje koje nije ispravno.
     - Seed nalozi (admin@, radnik@, trener1-3@, clan1-5@pumpd.local) imaju lozinku pumpd123.
+    - Nalog koji pravi radnik ili administrator dobija privremenu lozinku od servera (temporaryPassword);
+      prijava i profil vraćaju mustChangePassword: true dok je korisnik ne promijeni (PUT /users/my-password).
 
 servers:
   - url: http://localhost:8080/api 
@@ -53,6 +55,9 @@ paths:
                   email: { type: string }
                   role: { type: string, enum: [MEMBER, TRAINER, WORKER, ADMIN] }
                   token: { type: string }
+                  mustChangePassword:
+                    type: boolean
+                    description: true dok korisnik ne promijeni privremenu lozinku (PUT /users/my-password)
         '401':
           $ref: '#/components/responses/Error'
 
@@ -110,6 +115,44 @@ paths:
                   message: { type: string }
         '400':
           $ref: '#/components/responses/Error'
+
+  /users/my-password:
+    put:
+      summary: Promjena sopstvene lozinke
+      description: >
+        Za sve prijavljene korisnike. Nakon uspjeha mustChangePassword postaje false.
+        Pogrešna stara lozinka daje 400 (ne 401, da aplikacija ne odjavi korisnika).
+        Ostali uređaji se ne odjavljuju.
+      tags: [ Nalog i profil ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword: { type: string, minLength: 1 }
+                newPassword: { type: string, minLength: 8, maxLength: 72 }
+      responses:
+        '200':
+          description: Lozinka promijenjena
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          description: >
+            Polje nedostaje, nova lozinka nema 8–72 znaka, stara lozinka nije ispravna
+            ili je nova ista kao stara
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /membership/my-status:
     get:
@@ -1397,7 +1440,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       summary: Dodavanje člana (SU-46)
-      description: Uloga novog naloga je uvijek MEMBER. Godina rođenja ne smije biti poslije tekuće godine.
+      description: >
+        Uloga novog naloga je uvijek MEMBER. Godina rođenja ne smije biti poslije tekuće godine.
+        Lozinku ne šalje radnik: server generiše privremenu i vraća je u odgovoru (temporaryPassword).
       tags: [ Zaposleni ]
       requestBody:
         required: true
@@ -1405,12 +1450,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, surname, email, password]
+              required: [name, surname, email]
               properties:
                 name: { type: string, minLength: 1, maxLength: 45 }
                 surname: { type: string, minLength: 1, maxLength: 45 }
                 email: { type: string, format: email, maxLength: 100 }
-                password: { type: string, minLength: 8, maxLength: 72 }
                 birthYear: { type: integer, nullable: true, minimum: 1900 }
                 weight: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true, maximum: 500 }
                 height: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true, maximum: 300 }
@@ -1423,6 +1467,11 @@ paths:
                 type: object
                 properties:
                   memberId: { type: integer }
+                  temporaryPassword:
+                    type: string
+                    description: >
+                      Privremena lozinka koju je generisao server (12 znakova). Vraća se samo
+                      ovdje; korisnik je mora promijeniti nakon prve prijave.
                   message: { type: string }
         '400':
           description: Nevalidni podaci
@@ -1689,7 +1738,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       summary: Dodavanje trenera (SU-53)
-      description: Prazna biografija se čuva kao null.
+      description: >
+        Prazna biografija se čuva kao null. Lozinku generiše server i vraća je u odgovoru (temporaryPassword).
       tags: [ Administrator ]
       requestBody:
         required: true
@@ -1697,12 +1747,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, surname, email, password]
+              required: [name, surname, email]
               properties:
                 name: { type: string, minLength: 1, maxLength: 45 }
                 surname: { type: string, minLength: 1, maxLength: 45 }
                 email: { type: string, format: email, maxLength: 100 }
-                password: { type: string, minLength: 8, maxLength: 72 }
                 biography: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201':
@@ -1713,6 +1762,11 @@ paths:
                 type: object
                 properties:
                   trainerId: { type: integer }
+                  temporaryPassword:
+                    type: string
+                    description: >
+                      Privremena lozinka koju je generisao server (12 znakova). Vraća se samo
+                      ovdje; korisnik je mora promijeniti nakon prve prijave.
                   message: { type: string }
         '400':
           description: Nevalidni podaci
@@ -1831,6 +1885,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
     post:
       summary: Dodavanje radnika (SU-57)
+      description: Lozinku generiše server i vraća je u odgovoru (temporaryPassword).
       tags: [ Administrator ]
       requestBody:
         required: true
@@ -1838,12 +1893,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, surname, email, password]
+              required: [name, surname, email]
               properties:
                 name: { type: string, minLength: 1, maxLength: 45 }
                 surname: { type: string, minLength: 1, maxLength: 45 }
                 email: { type: string, format: email, maxLength: 100 }
-                password: { type: string, minLength: 8, maxLength: 72 }
       responses:
         '201':
           description: Radnik dodat
@@ -1853,6 +1907,11 @@ paths:
                 type: object
                 properties:
                   workerId: { type: integer }
+                  temporaryPassword:
+                    type: string
+                    description: >
+                      Privremena lozinka koju je generisao server (12 znakova). Vraća se samo
+                      ovdje; korisnik je mora promijeniti nakon prve prijave.
                   message: { type: string }
         '400':
           description: Nevalidni podaci
@@ -1967,7 +2026,10 @@ components:
         birthYear: { type: integer, nullable: true }
         weight: { type: number, nullable: true }
         height: { type: number, nullable: true }
-        role: { type: string, enum: [MEMBER, TRAINER, WORKER, ADMIN] } 
+        role: { type: string, enum: [MEMBER, TRAINER, WORKER, ADMIN] }
+        mustChangePassword:
+          type: boolean
+          description: Isto kao u odgovoru prijave; za aplikaciju pokrenutu sa sačuvanim tokenom
 
     # Reusable schema: Teretana (5.1, 5.2)
     GymInfo:

@@ -35,6 +35,10 @@ public class Nalog {
 	@Column( name="aktivan",nullable=false)
 	private boolean aktivan = true;
 
+	/** V8: nalog sa privremenom lozinkom (od radnika/admina) mora promijeniti lozinku. */
+	@Column( name="moraPromijenitiLozinku",nullable=false)
+	private boolean moraPromijenitiLozinku = false;
+
 	protected Nalog()
 	{
 
@@ -51,6 +55,22 @@ public class Nalog {
 
 	public boolean isAktivan() {
 		return aktivan;
+	}
+
+	/** Privremena lozinka (11.3, 12.3, 12.7): korisnik je mora promijeniti. */
+	public void postaviPrivremenuLozinku(String hes) {
+		this.lozinka = hes;
+		this.moraPromijenitiLozinku = true;
+	}
+
+	/** Korisnik je sam postavio lozinku (PUT /api/users/my-password). */
+	public void promijeniLozinku(String hes) {
+		this.lozinka = hes;
+		this.moraPromijenitiLozinku = false;
+	}
+
+	public boolean isMoraPromijenitiLozinku() {
+		return moraPromijenitiLozinku;
 	}
 
 	public Integer getId() {

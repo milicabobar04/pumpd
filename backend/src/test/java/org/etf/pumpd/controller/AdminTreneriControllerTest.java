@@ -189,7 +189,7 @@ class AdminTreneriControllerTest {
     // ------------------------------------------------------------ 12.3 dodavanje trenera
 
     private static final String ISPRAVAN_TRENER = """
-            {"name":"Ana","surname":"Ilić","email":"ana@mail.com","password":"lozinka123",
+            {"name":"Ana","surname":"Ilić","email":"ana@mail.com",
              "biography":"Pilates instruktor."}
             """;
 
@@ -203,33 +203,33 @@ class AdminTreneriControllerTest {
     @Test
     void dodavanjeVraca201SaIdomIPorukom() throws Exception {
         when(adminTreneriService.dodajTrenera(any()))
-                .thenReturn(new DodavanjeTreneraOdgovor(11, "Trener je uspjesno dodan."));
+                .thenReturn(new DodavanjeTreneraOdgovor(11, "Privremena7k", "Trener je uspjesno dodan."));
 
         posalji(ISPRAVAN_TRENER, Uloga.ADMIN)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.trainerId").value(11))
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"))
                 .andExpect(jsonPath("$.message").value("Trener je uspjesno dodan."));
 
         verify(adminTreneriService).dodajTrenera(new DodavanjeTreneraZahtjev(
-                "Ana", "Ilić", "ana@mail.com", "lozinka123", "Pilates instruktor."));
+                "Ana", "Ilić", "ana@mail.com", "Pilates instruktor."));
     }
 
     @Test
     void biografijaSeMozeIzostaviti() throws Exception {
-        when(adminTreneriService.dodajTrenera(any())).thenReturn(new DodavanjeTreneraOdgovor(11, "ok"));
+        when(adminTreneriService.dodajTrenera(any())).thenReturn(new DodavanjeTreneraOdgovor(11, "Privremena7k", "ok"));
 
         posalji("""
-                {"name":"Ana","surname":"Ilić","email":"ana@mail.com","password":"lozinka123"}
+                {"name":"Ana","surname":"Ilić","email":"ana@mail.com"}
                 """, Uloga.ADMIN)
                 .andExpect(status().isCreated());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Ana\",\"surname\":\"\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"nije-email\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"kratka\"}"
+            "{\"surname\":\"Ilić\",\"email\":\"ana@mail.com\"}",
+            "{\"name\":\"Ana\",\"surname\":\"\",\"email\":\"ana@mail.com\"}",
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"nije-email\"}",
     })
     void nevalidniPodaciVracaju400(String tijelo) throws Exception {
         posalji(tijelo, Uloga.ADMIN)
@@ -244,7 +244,7 @@ class AdminTreneriControllerTest {
         String biografija = "a".repeat(501);
 
         posalji("""
-                {"name":"Ana","surname":"Ilić","email":"ana@mail.com","password":"lozinka123","biography":"%s"}
+                {"name":"Ana","surname":"Ilić","email":"ana@mail.com","biography":"%s"}
                 """.formatted(biografija), Uloga.ADMIN)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("biography: Biografija moze imati najvise 500 znakova."));
@@ -315,5 +315,16 @@ class AdminTreneriControllerTest {
     void uklanjanjeBezTokenaVraca401() throws Exception {
         mockMvc.perform(delete(RUTA + "/3"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ------------------------------------------------------------ privremena lozinka
+
+    @Test
+    void lozinkaIzStarogFrontendaSeIgnorise() throws Exception {
+        when(adminTreneriService.dodajTrenera(any())).thenReturn(new DodavanjeTreneraOdgovor(11, "Privremena7k", "ok"));
+
+        posalji("{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"x\"}", Uloga.ADMIN)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"));
     }
 }

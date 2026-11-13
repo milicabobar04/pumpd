@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.etf.pumpd.entity.Nalog;
+import org.etf.pumpd.service.NoviNalogService.NoviNalog;
 import org.etf.pumpd.exception.KonfliktException;
 import org.etf.pumpd.repository.NalogRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,13 +26,16 @@ class NoviNalogServiceTest {
 
     private NalogRepository nalogRepository;
     private PasswordEncoder passwordEncoder;
+    private GeneratorLozinke generatorLozinke;
     private NoviNalogService servis;
 
     @BeforeEach
     void postavi() {
         nalogRepository = mock(NalogRepository.class);
         passwordEncoder = new BCryptPasswordEncoder(4); // mala cijena da test bude brz
-        servis = new NoviNalogService(nalogRepository, passwordEncoder);
+        generatorLozinke = mock(GeneratorLozinke.class);
+        when(generatorLozinke.generisi()).thenReturn("Privremena7k");
+        servis = new NoviNalogService(nalogRepository, passwordEncoder, generatorLozinke);
     }
 
     /** Baza dodijeli id 11 pri upisu naloga. */
@@ -48,26 +52,34 @@ class NoviNalogServiceTest {
     void vracaUpisaniNalogSaIdom() {
         bazaDodjeljujeId();
 
-        Nalog nalog = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com", "lozinka123");
+        Nalog nalog = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com").nalog();
 
         assertEquals(11, nalog.getId());
     }
 
     @Test
-    void lozinkaSeCuvaHesirana() {
+    void privremenaLozinkaSeVracaACuvaSeSamoHes() {
         bazaDodjeljujeId();
 
-        Nalog nalog = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com", "lozinka123");
+        NoviNalog novi = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com");
 
-        assertNotEquals("lozinka123", nalog.getLozinka());
-        assertTrue(passwordEncoder.matches("lozinka123", nalog.getLozinka()));
+        assertEquals("Privremena7k", novi.privremenaLozinka());
+        assertNotEquals("Privremena7k", novi.nalog().getLozinka());
+        assertTrue(passwordEncoder.matches("Privremena7k", novi.nalog().getLozinka()));
+    }
+
+    @Test
+    void noviNalogMoraPromijenitiLozinku() {
+        bazaDodjeljujeId();
+
+        assertTrue(servis.kreirajNalog("Ana", "Ilić", "ana@mail.com").nalog().isMoraPromijenitiLozinku());
     }
 
     @Test
     void imePrezimeIEmailSeCisteOdRazmaka() {
         bazaDodjeljujeId();
 
-        Nalog nalog = servis.kreirajNalog(" Ana ", " Ilić ", " ana@mail.com ", "lozinka123");
+        Nalog nalog = servis.kreirajNalog(" Ana ", " Ilić ", " ana@mail.com ").nalog();
 
         assertEquals("Ana", nalog.getIme());
         assertEquals("Ilić", nalog.getPrezime());
@@ -80,10 +92,11 @@ class NoviNalogServiceTest {
         when(nalogRepository.existsByEmail("ana@mail.com")).thenReturn(true);
 
         KonfliktException izuzetak = assertThrows(KonfliktException.class,
-                () -> servis.kreirajNalog("Ana", "Ilić", "ana@mail.com", "lozinka123"));
+                () -> servis.kreirajNalog("Ana", "Ilić", "ana@mail.com"));
 
         assertEquals("Email vec postoji.", izuzetak.getMessage());
         verify(nalogRepository, never()).saveAndFlush(any());
+        verify(generatorLozinke, never()).generisi();
     }
 
     @Test
@@ -93,7 +106,7 @@ class NoviNalogServiceTest {
                 .thenThrow(new DataIntegrityViolationException("Duplicate entry for key 'email_UNIQUE'"));
 
         KonfliktException izuzetak = assertThrows(KonfliktException.class,
-                () -> servis.kreirajNalog("Ana", "Ilić", "ana@mail.com", "lozinka123"));
+                () -> servis.kreirajNalog("Ana", "Ilić", "ana@mail.com"));
 
         assertEquals("Email vec postoji.", izuzetak.getMessage());
     }
@@ -102,7 +115,7 @@ class NoviNalogServiceTest {
     void nalogSeUpisujeOdmahPrekoSaveAndFlush() {
         bazaDodjeljujeId();
 
-        Nalog nalog = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com", "lozinka123");
+        Nalog nalog = servis.kreirajNalog("Ana", "Ilić", "ana@mail.com").nalog();
 
         verify(nalogRepository).saveAndFlush(nalog);
         verify(nalogRepository, never()).save(any());

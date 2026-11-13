@@ -54,7 +54,8 @@ public class AuthService {
 				.orElseThrow(NeispravnaPrijavaException::new);
 
 		String token = jwtService.generisiToken(n.getId(), uloga);
-		return new PrijavaOdgovor(n.getId(), n.getIme(), n.getPrezime(), n.getEmail(), uloga, token);
+		return new PrijavaOdgovor(n.getId(), n.getIme(), n.getPrezime(), n.getEmail(), uloga, token,
+				n.isMoraPromijenitiLozinku());
 	}
 
 	/** 1.2 Odjava: token ulazi u listu nevažećih do svog isteka. */

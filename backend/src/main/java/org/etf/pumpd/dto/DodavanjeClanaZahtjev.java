@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
- * 11.3 POST /api/worker/members - tijelo zahtjeva. Uloga je uvijek MEMBER i ne šalje se.
+ * 11.3 POST /api/worker/members - tijelo zahtjeva. Lozinku generiše server (temporaryPassword u odgovoru). Uloga je uvijek MEMBER i ne šalje se.
  * Gornja granica za birthYear (tekuća godina) provjerava se u servisu jer zavisi od datuma.
  */
 public record DodavanjeClanaZahtjev(
@@ -24,10 +24,6 @@ public record DodavanjeClanaZahtjev(
 		@Email(message = "Email nije ispravnog formata.")
 		@Size(max = 100, message = "Email moze imati najvise 100 znakova.")
 		String email,
-
-		@NotBlank(message = "Lozinka je obavezna.")
-		@Size(min = 8, max = 72, message = "Lozinka mora imati izmedju 8 i 72 znaka.")
-		String password,
 
 		@Min(value = 1900, message = "Godina rodjenja ne moze biti prije 1900.")
 		Integer birthYear,

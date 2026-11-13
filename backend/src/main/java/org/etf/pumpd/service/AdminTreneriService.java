@@ -63,10 +63,11 @@ public class AdminTreneriService {
 	/** 12.3: novi nalog sa ulogom TRAINER. Nalog i trener se upisuju u istoj transakciji. */
 	@Transactional
 	public DodavanjeTreneraOdgovor dodajTrenera(DodavanjeTreneraZahtjev zahtjev) {
-		Nalog nalog = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(), zahtjev.email(),
-				zahtjev.password());
+		NoviNalogService.NoviNalog novi = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(),
+				zahtjev.email());
+		Nalog nalog = novi.nalog();
 		trenerRepository.save(new Trener(nalog, null, null, ocistiBiografiju(zahtjev.biography())));
-		return new DodavanjeTreneraOdgovor(nalog.getId(), "Trener je uspjesno dodan.");
+		return new DodavanjeTreneraOdgovor(nalog.getId(), novi.privremenaLozinka(), "Trener je uspjesno dodan.");
 	}
 
 	/**
