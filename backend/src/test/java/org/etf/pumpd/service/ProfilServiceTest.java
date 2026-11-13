@@ -71,6 +71,7 @@ class ProfilServiceTest {
         assertEquals(80.0, profil.weight());
         assertEquals(180.0, profil.height());
         assertEquals(Uloga.MEMBER, profil.role());
+        assertEquals(false, profil.mustChangePassword());
     }
 
     @Test

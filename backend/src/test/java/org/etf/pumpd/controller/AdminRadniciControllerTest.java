@@ -54,7 +54,7 @@ class AdminRadniciControllerTest {
     private static final String RUTA = "/api/admin/workers";
 
     private static final String ISPRAVAN_RADNIK = """
-            {"name":"Haris","surname":"Zukić","email":"haris@mail.com","password":"lozinka123"}
+            {"name":"Haris","surname":"Zukić","email":"haris@mail.com"}
             """;
 
     @Autowired
@@ -188,24 +188,23 @@ class AdminRadniciControllerTest {
     @Test
     void dodavanjeVraca201SaIdomIPorukom() throws Exception {
         when(adminRadniciService.dodajRadnika(any()))
-                .thenReturn(new DodavanjeRadnikaOdgovor(11, "Radnik je uspjesno dodan."));
+                .thenReturn(new DodavanjeRadnikaOdgovor(11, "Privremena7k", "Radnik je uspjesno dodan."));
 
         posalji(ISPRAVAN_RADNIK, Uloga.ADMIN)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.workerId").value(11))
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"))
                 .andExpect(jsonPath("$.message").value("Radnik je uspjesno dodan."));
 
         verify(adminRadniciService).dodajRadnika(
-                new DodavanjeRadnikaZahtjev("Haris", "Zukić", "haris@mail.com", "lozinka123"));
+                new DodavanjeRadnikaZahtjev("Haris", "Zukić", "haris@mail.com"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"surname\":\"Zukić\",\"email\":\"haris@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Haris\",\"surname\":\" \",\"email\":\"haris@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Haris\",\"surname\":\"Zukić\",\"email\":\"nije-email\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Haris\",\"surname\":\"Zukić\",\"email\":\"haris@mail.com\",\"password\":\"kratka\"}",
-            "{\"name\":\"Haris\",\"surname\":\"Zukić\",\"email\":\"haris@mail.com\"}"
+            "{\"surname\":\"Zukić\",\"email\":\"haris@mail.com\"}",
+            "{\"name\":\"Haris\",\"surname\":\" \",\"email\":\"haris@mail.com\"}",
+            "{\"name\":\"Haris\",\"surname\":\"Zukić\",\"email\":\"nije-email\"}"
     })
     void nevalidniPodaciVracaju400(String tijelo) throws Exception {
         posalji(tijelo, Uloga.ADMIN)
@@ -272,5 +271,16 @@ class AdminRadniciControllerTest {
     void uklanjanjeBezTokenaVraca401() throws Exception {
         mockMvc.perform(delete(RUTA + "/2"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ------------------------------------------------------------ privremena lozinka
+
+    @Test
+    void lozinkaIzStarogFrontendaSeIgnorise() throws Exception {
+        when(adminRadniciService.dodajRadnika(any())).thenReturn(new DodavanjeRadnikaOdgovor(11, "Privremena7k", "ok"));
+
+        posalji("{\"name\":\"Haris\",\"surname\":\"Zukić\",\"email\":\"haris@mail.com\",\"password\":\"x\"}", Uloga.ADMIN)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"));
     }
 }

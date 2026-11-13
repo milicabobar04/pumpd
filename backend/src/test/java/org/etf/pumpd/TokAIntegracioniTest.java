@@ -10,9 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -45,13 +47,15 @@ import com.jayway.jsonpath.JsonPath;
 class TokAIntegracioniTest {
 
     private static final String SEED_LOZINKA = "pumpd123";
-    private static final String LOZINKA = "lozinka123";
     private static final AtomicInteger BROJAC = new AtomicInteger();
 
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private JdbcTemplate jdbc;
+
+    /** Privremene lozinke naloga napravljenih u testu (server ih generiše pri dodavanju). */
+    private final Map<String, String> lozinke = new HashMap<>();
 
     private String admin;
     private String radnik;
@@ -119,22 +123,36 @@ class TokAIntegracioniTest {
         return JsonPath.read(odgovor.andReturn().getResponse().getContentAsString(), "$." + polje);
     }
 
+    /** Upisuje nalog, pamti privremenu lozinku iz odgovora i vraća id. */
+    private int dodaj(String token, String ruta, String email, String tijelo, String poljeId) throws Exception {
+        String odgovor = post_(token, ruta, tijelo)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.temporaryPassword").isString())
+                .andReturn().getResponse().getContentAsString();
+        lozinke.put(email, JsonPath.read(odgovor, "$.temporaryPassword"));
+        return JsonPath.read(odgovor, "$." + poljeId);
+    }
+
+    private String lozinkaZa(String email) {
+        return lozinke.get(email);
+    }
+
     private int dodajClana(String email) throws Exception {
-        return idIzOdgovora(post_(radnik, "/api/worker/members", """
-                {"name":"Test","surname":"Clan","email":"%s","password":"%s","birthYear":2000}
-                """.formatted(email, LOZINKA)).andExpect(status().isCreated()), "memberId");
+        return dodaj(radnik, "/api/worker/members", email, """
+                {"name":"Test","surname":"Clan","email":"%s","birthYear":2000}
+                """.formatted(email), "memberId");
     }
 
     private int dodajTrenera(String email) throws Exception {
-        return idIzOdgovora(post_(admin, "/api/admin/trainers", """
-                {"name":"Test","surname":"Trener","email":"%s","password":"%s","biography":"  Test bio  "}
-                """.formatted(email, LOZINKA)).andExpect(status().isCreated()), "trainerId");
+        return dodaj(admin, "/api/admin/trainers", email, """
+                {"name":"Test","surname":"Trener","email":"%s","biography":"  Test bio  "}
+                """.formatted(email), "trainerId");
     }
 
     private int dodajRadnika(String email) throws Exception {
-        return idIzOdgovora(post_(admin, "/api/admin/workers", """
-                {"name":"Test","surname":"Radnik","email":"%s","password":"%s"}
-                """.formatted(email, LOZINKA)).andExpect(status().isCreated()), "workerId");
+        return dodaj(admin, "/api/admin/workers", email, """
+                {"name":"Test","surname":"Radnik","email":"%s"}
+                """.formatted(email), "workerId");
     }
 
     private int idSeedNaloga(String email) {
@@ -228,11 +246,11 @@ class TokAIntegracioniTest {
                 .andExpect(jsonPath("$.membershipActive").value(false))
                 .andExpect(jsonPath("$.membershipValidUntil").value(nullValue()));
         assertNotNull(jdbc.queryForObject("SELECT qrKod FROM clan WHERE nalog_idnalog = ?", String.class, id));
-        assertEquals("MEMBER", uloga(email, LOZINKA));
+        assertEquals("MEMBER", uloga(email, lozinkaZa(email)));
 
         post_(radnik, "/api/worker/members", """
-                {"name":"X","surname":"Y","email":"%s","password":"%s"}
-                """.formatted(email.toUpperCase(), LOZINKA))
+                {"name":"X","surname":"Y","email":"%s"}
+                """.formatted(email.toUpperCase()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Email vec postoji."));
     }
@@ -263,11 +281,11 @@ class TokAIntegracioniTest {
                 .andExpect(jsonPath("$.biography").value("Test bio"))
                 .andExpect(jsonPath("$.averageGrade").value(nullValue()))
                 .andExpect(jsonPath("$.followerCount").value(0));
-        assertEquals("TRAINER", uloga(email, LOZINKA));
+        assertEquals("TRAINER", uloga(email, lozinkaZa(email)));
 
         post_(admin, "/api/admin/trainers", """
-                {"name":"X","surname":"Y","email":"%s","password":"%s"}
-                """.formatted(email, LOZINKA)).andExpect(status().isConflict());
+                {"name":"X","surname":"Y","email":"%s"}
+                """.formatted(email)).andExpect(status().isConflict());
     }
 
     @Test
@@ -339,8 +357,8 @@ class TokAIntegracioniTest {
         assertEquals(0, brojRedova("administrator", "zaposleni_nalog_idnalog", id));
         get_(admin, "/api/admin/workers/" + id).andExpect(jsonPath("$.email").value(email));
 
-        assertEquals("WORKER", uloga(email, LOZINKA));
-        String token = prijava(email, LOZINKA);
+        assertEquals("WORKER", uloga(email, lozinkaZa(email)));
+        String token = prijava(email, lozinkaZa(email));
         get_(token, "/api/worker/members").andExpect(status().isOk());
         get_(token, "/api/admin/workers").andExpect(status().isForbidden());
     }
@@ -351,7 +369,7 @@ class TokAIntegracioniTest {
     void mekoBrisanjeClana() throws Exception {
         String email = jedinstvenEmail("clan");
         int id = dodajClana(email);
-        String token = prijava(email, LOZINKA);
+        String token = prijava(email, lozinkaZa(email));
         get_(token, "/api/users/my-profile").andExpect(status().isOk());
 
         delete_(clan, "/api/worker/members/" + id).andExpect(status().isForbidden());
@@ -363,7 +381,7 @@ class TokAIntegracioniTest {
         pretraga(radnik, email).andExpect(jsonPath("$").isEmpty());
         delete_(radnik, "/api/worker/members/" + id).andExpect(status().isNotFound());
         get_(token, "/api/users/my-profile").andExpect(status().isUnauthorized());
-        prijavaZahtjev(email, LOZINKA).andExpect(status().isUnauthorized());
+        prijavaZahtjev(email, lozinkaZa(email)).andExpect(status().isUnauthorized());
 
         Map<String, Object> red = nalogUBazi(id);
         assertEquals("obrisan-" + id + "@pumpd.invalid", red.get("email"));
@@ -371,7 +389,7 @@ class TokAIntegracioniTest {
         assertEquals(1, brojRedova("clan", "nalog_idnalog", id), "red člana ostaje zbog istorije");
 
         int noviId = dodajClana(email);   // email je oslobođen
-        assertEquals("MEMBER", uloga(email, LOZINKA));
+        assertEquals("MEMBER", uloga(email, lozinkaZa(email)));
         pretraga(radnik, email).andExpect(jsonPath("$[0].memberId").value(noviId));
     }
 
@@ -379,7 +397,7 @@ class TokAIntegracioniTest {
     void mekoBrisanjeTrenera() throws Exception {
         String email = jedinstvenEmail("trener");
         int id = dodajTrenera(email);
-        String token = prijava(email, LOZINKA);
+        String token = prijava(email, lozinkaZa(email));
 
         delete_(radnik, "/api/admin/trainers/" + id).andExpect(status().isForbidden());
         delete_(admin, "/api/admin/trainers/" + id).andExpect(status().isOk());
@@ -387,7 +405,7 @@ class TokAIntegracioniTest {
         get_(admin, "/api/admin/trainers/" + id).andExpect(status().isNotFound());
         get_(admin, "/api/admin/trainers").andExpect(jsonPath("$[*].trainerId", not(hasItem(id))));
         get_(token, "/api/users/my-profile").andExpect(status().isUnauthorized());
-        prijavaZahtjev(email, LOZINKA).andExpect(status().isUnauthorized());
+        prijavaZahtjev(email, lozinkaZa(email)).andExpect(status().isUnauthorized());
         assertFalse((Boolean) nalogUBazi(id).get("aktivan"));
     }
 
@@ -395,7 +413,7 @@ class TokAIntegracioniTest {
     void mekoBrisanjeRadnika() throws Exception {
         String email = jedinstvenEmail("radnik");
         int id = dodajRadnika(email);
-        String token = prijava(email, LOZINKA);
+        String token = prijava(email, lozinkaZa(email));
 
         delete_(admin, "/api/admin/workers/" + id).andExpect(status().isOk());
 
@@ -428,5 +446,71 @@ class TokAIntegracioniTest {
         assertEquals(svi, prazna);
         pretraga(radnik, " amar ")
                 .andExpect(jsonPath("$[*].email", containsInAnyOrder("clan1@pumpd.local")));
+    }
+
+    // ------------------------------------------------------------ privremena lozinka i promjena lozinke
+
+    @Test
+    void seedNalogNeMoraMijenjatiLozinku() throws Exception {
+        prijavaZahtjev("clan1@pumpd.local", SEED_LOZINKA).andExpect(jsonPath("$.mustChangePassword").value(false));
+        get_(clan, "/api/users/my-profile").andExpect(jsonPath("$.mustChangePassword").value(false));
+    }
+
+    @Test
+    void privremenaLozinkaIPromjenaLozinke() throws Exception {
+        String email = jedinstvenEmail("lozinka");
+        int id = dodajClana(email);
+        String privremena = lozinkaZa(email);
+        assertEquals(12, privremena.length());
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT moraPromijenitiLozinku FROM nalog WHERE idnalog = ?", Integer.class, id));
+
+        prijavaZahtjev(email, privremena)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(true));
+        String token = prijava(email, privremena);
+        get_(token, "/api/users/my-profile").andExpect(jsonPath("$.mustChangePassword").value(true));
+
+        promijeniLozinku(token, "pogresna", "mojaNovaLozinka")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Stara lozinka nije ispravna."));
+        promijeniLozinku(token, privremena, privremena)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Nova lozinka mora biti razlicita od stare."));
+        promijeniLozinku(token, privremena, "mojaNovaLozinka")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Lozinka je promijenjena."));
+
+        prijavaZahtjev(email, privremena).andExpect(status().isUnauthorized());
+        prijavaZahtjev(email, "mojaNovaLozinka")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(false));
+        get_(token, "/api/users/my-profile").andExpect(jsonPath("$.mustChangePassword").value(false));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT moraPromijenitiLozinku FROM nalog WHERE idnalog = ?", Integer.class, id));
+    }
+
+    @Test
+    void promjenaLozinkeRadiZaSveUlogeITraziToken() throws Exception {
+        String emailTrenera = jedinstvenEmail("trener");
+        dodajTrenera(emailTrenera);
+        String tokenTrenera = prijava(emailTrenera, lozinkaZa(emailTrenera));
+        promijeniLozinku(tokenTrenera, lozinkaZa(emailTrenera), "trenerNovaLozinka").andExpect(status().isOk());
+
+        String emailRadnika = jedinstvenEmail("radnik");
+        dodajRadnika(emailRadnika);
+        String tokenRadnika = prijava(emailRadnika, lozinkaZa(emailRadnika));
+        promijeniLozinku(tokenRadnika, lozinkaZa(emailRadnika), "radnikNovaLozinka").andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/users/my-password").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"oldPassword\":\"a\",\"newPassword\":\"bbbbbbbb\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private ResultActions promijeniLozinku(String token, String stara, String nova) throws Exception {
+        return mockMvc.perform(put("/api/users/my-password")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"oldPassword\":\"%s\",\"newPassword\":\"%s\"}".formatted(stara, nova)));
     }
 }

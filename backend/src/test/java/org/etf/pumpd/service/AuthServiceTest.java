@@ -61,6 +61,7 @@ class AuthServiceTest {
         assertEquals("Petrović", odgovor.surname());
         assertEquals("trener1@pumpd.local", odgovor.email());
         assertEquals(Uloga.TRAINER, odgovor.role());
+        assertEquals(false, odgovor.mustChangePassword());
 
         JwtPodaci podaci = jwtService.procitaj(odgovor.token()).orElseThrow();
         assertEquals(3, podaci.idNalog());
@@ -114,5 +115,16 @@ class AuthServiceTest {
         assertTrue(kasnije.procitaj(token).isEmpty());
 
         assertTrue(jwtService.procitaj("nije.jwt.token").isEmpty());
+    }
+
+    @Test
+    void prijavaSaPrivremenomLozinkomTraziPromjenu() {
+        nalog.postaviPrivremenuLozinku(new BCryptPasswordEncoder(4).encode("Privremena7k"));
+        when(korisnikService.pronadjiPoEmailu("trener1@pumpd.local")).thenReturn(Optional.of(nalog));
+        when(korisnikService.odrediUlogu(3)).thenReturn(Optional.of(Uloga.TRAINER));
+
+        PrijavaOdgovor odgovor = servis.prijava(new PrijavaZahtjev("trener1@pumpd.local", "Privremena7k"));
+
+        assertEquals(true, odgovor.mustChangePassword());
     }
 }

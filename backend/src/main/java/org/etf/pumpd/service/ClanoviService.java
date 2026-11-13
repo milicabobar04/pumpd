@@ -89,13 +89,14 @@ public class ClanoviService {
 	@Transactional
 	public DodavanjeClanaOdgovor dodajClana(DodavanjeClanaZahtjev zahtjev) {
 		provjeriGodinuRodjenja(zahtjev.birthYear());
-		Nalog nalog = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(), zahtjev.email(),
-				zahtjev.password());
+		NoviNalogService.NoviNalog novi = noviNalogService.kreirajNalog(zahtjev.name(), zahtjev.surname(),
+				zahtjev.email());
+		Nalog nalog = novi.nalog();
 
 		LocalDate datumRodjenja = zahtjev.birthYear() == null ? null : LocalDate.of(zahtjev.birthYear(), 1, 1);
 		clanRepository.save(new Clan(nalog, zahtjev.weight(), zahtjev.height(), null, datumRodjenja));
 
-		return new DodavanjeClanaOdgovor(nalog.getId(), "Clan je uspjesno dodan.");
+		return new DodavanjeClanaOdgovor(nalog.getId(), novi.privremenaLozinka(), "Clan je uspjesno dodan.");
 	}
 
 	/**

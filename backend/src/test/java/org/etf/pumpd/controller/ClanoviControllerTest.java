@@ -199,7 +199,7 @@ class ClanoviControllerTest {
     // ------------------------------------------------------------ 11.3 dodavanje člana
 
     private static final String ISPRAVAN_CLAN = """
-            {"name":"Ana","surname":"Ilić","email":"ana@mail.com","password":"lozinka123",
+            {"name":"Ana","surname":"Ilić","email":"ana@mail.com",
              "birthYear":2000,"weight":60.5,"height":168.0}
             """;
 
@@ -212,38 +212,38 @@ class ClanoviControllerTest {
 
     @Test
     void dodavanjeVraca201SaIdomIPorukom() throws Exception {
-        when(clanoviService.dodajClana(any())).thenReturn(new DodavanjeClanaOdgovor(11, "Clan je uspjesno dodan."));
+        when(clanoviService.dodajClana(any())).thenReturn(new DodavanjeClanaOdgovor(11, "Privremena7k", "Clan je uspjesno dodan."));
 
         posalji(ISPRAVAN_CLAN, Uloga.WORKER)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.memberId").value(11))
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"))
                 .andExpect(jsonPath("$.message").value("Clan je uspjesno dodan."));
 
         verify(clanoviService).dodajClana(new DodavanjeClanaZahtjev(
-                "Ana", "Ilić", "ana@mail.com", "lozinka123", 2000, 60.5, 168.0));
+                "Ana", "Ilić", "ana@mail.com", 2000, 60.5, 168.0));
     }
 
     @Test
     void opcionaPoljaSeMoguIzostaviti() throws Exception {
-        when(clanoviService.dodajClana(any())).thenReturn(new DodavanjeClanaOdgovor(11, "ok"));
+        when(clanoviService.dodajClana(any())).thenReturn(new DodavanjeClanaOdgovor(11, "Privremena7k", "ok"));
 
         posalji("""
-                {"name":"Ana","surname":"Ilić","email":"ana@mail.com","password":"lozinka123"}
+                {"name":"Ana","surname":"Ilić","email":"ana@mail.com"}
                 """, Uloga.ADMIN)
                 .andExpect(status().isCreated());
     }
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"  \",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"nije-email\",\"password\":\"lozinka123\"}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"kratka\"}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"weight\":-5}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"height\":301}",
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"birthYear\":1899}",
+            "{\"surname\":\"Ilić\",\"email\":\"ana@mail.com\"}",
+            "{\"name\":\"  \",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\"}",
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"nije-email\"}",
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"weight\":-5}",
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"height\":301}",
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"birthYear\":1899}",
             // decimalni broj u cjelobrojnom polju se ne skraćuje tiho (accept-float-as-int=false)
-            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"lozinka123\",\"birthYear\":2000.5}"
+            "{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"birthYear\":2000.5}"
     })
     void nevalidniPodaciVracaju400(String tijelo) throws Exception {
         posalji(tijelo, Uloga.WORKER)
@@ -256,7 +256,7 @@ class ClanoviControllerTest {
     @Test
     void porukaKazeKojePoljeNijeIspravno() throws Exception {
         posalji("""
-                {"name":"Ana","surname":"Ilić","email":"nije-email","password":"lozinka123"}
+                {"name":"Ana","surname":"Ilić","email":"nije-email"}
                 """, Uloga.WORKER)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("email: Email nije ispravnog formata."));
@@ -328,5 +328,16 @@ class ClanoviControllerTest {
     void uklanjanjeBezTokenaVraca401() throws Exception {
         mockMvc.perform(delete(RUTA + "/6"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ------------------------------------------------------------ privremena lozinka
+
+    @Test
+    void lozinkaIzStarogFrontendaSeIgnorise() throws Exception {
+        when(clanoviService.dodajClana(any())).thenReturn(new DodavanjeClanaOdgovor(11, "Privremena7k", "ok"));
+
+        posalji("{\"name\":\"Ana\",\"surname\":\"Ilić\",\"email\":\"ana@mail.com\",\"password\":\"x\"}", Uloga.WORKER)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.temporaryPassword").value("Privremena7k"));
     }
 }

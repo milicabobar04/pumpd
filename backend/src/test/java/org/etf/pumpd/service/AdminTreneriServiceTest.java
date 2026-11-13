@@ -51,9 +51,11 @@ class AdminTreneriServiceTest {
         recenzijaRepository = mock(RecenzijaRepository.class);
         pracenjeRepository = mock(PracenjeRepository.class);
         nalogRepository = mock(NalogRepository.class);
+        GeneratorLozinke generatorLozinke = mock(GeneratorLozinke.class);
+        when(generatorLozinke.generisi()).thenReturn("Privremena7k");
         // pravi NoviNalogService nad mock repozitorijumom, da test pokriva cijeli tok dodavanja trenera
         servis = new AdminTreneriService(trenerRepository, recenzijaRepository, pracenjeRepository,
-                new NoviNalogService(nalogRepository, new BCryptPasswordEncoder(4)));
+                new NoviNalogService(nalogRepository, new BCryptPasswordEncoder(4), generatorLozinke));
     }
 
     private static Trener trener(int id, String ime, String prezime, String opis) {
@@ -144,7 +146,7 @@ class AdminTreneriServiceTest {
     // ------------------------------------------------------------ 12.3 dodavanje trenera
 
     private static DodavanjeTreneraZahtjev zahtjev(String biografija) {
-        return new DodavanjeTreneraZahtjev("Ana", "Ilić", "ana@mail.com", "lozinka123", biografija);
+        return new DodavanjeTreneraZahtjev("Ana", "Ilić", "ana@mail.com", biografija);
     }
 
     /** Baza dodijeli id 11 pri upisu naloga. */
@@ -169,7 +171,7 @@ class AdminTreneriServiceTest {
 
         DodavanjeTreneraOdgovor odgovor = servis.dodajTrenera(zahtjev("Pilates instruktor."));
 
-        assertEquals(new DodavanjeTreneraOdgovor(11, "Trener je uspjesno dodan."), odgovor);
+        assertEquals(new DodavanjeTreneraOdgovor(11, "Privremena7k", "Trener je uspjesno dodan."), odgovor);
     }
 
     @Test

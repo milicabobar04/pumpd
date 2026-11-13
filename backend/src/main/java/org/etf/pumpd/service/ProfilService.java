@@ -56,7 +56,7 @@ public class ProfilService {
             visina = clan.getVisina();
         }
         return new ProfilDto(nalog.getId(), nalog.getIme(), nalog.getPrezime(), nalog.getEmail(),
-                godinaRodjenja, tezina, visina, uloga);
+                godinaRodjenja, tezina, visina, uloga, nalog.isMoraPromijenitiLozinku());
     }
     
     @Transactional

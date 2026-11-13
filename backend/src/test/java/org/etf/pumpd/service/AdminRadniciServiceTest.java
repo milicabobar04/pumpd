@@ -45,9 +45,11 @@ class AdminRadniciServiceTest {
         radnikRepository = mock(RadnikRepository.class);
         zaposleniRepository = mock(ZaposleniRepository.class);
         nalogRepository = mock(NalogRepository.class);
+        GeneratorLozinke generatorLozinke = mock(GeneratorLozinke.class);
+        when(generatorLozinke.generisi()).thenReturn("Privremena7k");
         // pravi NoviNalogService nad mock repozitorijumom, da test pokriva cijeli tok dodavanja radnika
         servis = new AdminRadniciService(radnikRepository, zaposleniRepository,
-                new NoviNalogService(nalogRepository, new BCryptPasswordEncoder(4)));
+                new NoviNalogService(nalogRepository, new BCryptPasswordEncoder(4), generatorLozinke));
     }
 
     private static Radnik radnik(int id, String ime, String prezime) {
@@ -96,7 +98,7 @@ class AdminRadniciServiceTest {
     // ------------------------------------------------------------ 12.7 dodavanje radnika
 
     private static final DodavanjeRadnikaZahtjev ZAHTJEV =
-            new DodavanjeRadnikaZahtjev("Haris", "Zukić", "haris@mail.com", "lozinka123");
+            new DodavanjeRadnikaZahtjev("Haris", "Zukić", "haris@mail.com");
 
     /** Baza dodijeli id 11 pri upisu naloga; save vraća isti objekat koji je dobio. */
     private void bazaUpisuje() {
@@ -115,7 +117,7 @@ class AdminRadniciServiceTest {
 
         DodavanjeRadnikaOdgovor odgovor = servis.dodajRadnika(ZAHTJEV);
 
-        assertEquals(new DodavanjeRadnikaOdgovor(11, "Radnik je uspjesno dodan."), odgovor);
+        assertEquals(new DodavanjeRadnikaOdgovor(11, "Privremena7k", "Radnik je uspjesno dodan."), odgovor);
     }
 
     @Test
