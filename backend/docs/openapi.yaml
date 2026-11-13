@@ -2,7 +2,17 @@ openapi: 3.0.3
 info:
   title: Pumpd API
   version: 1.0.0
-  description: Zvanična API specifikacija za Pumpd aplikaciju zasnovana na ugovoru. 
+  description: |
+    Zvanična API specifikacija za Pumpd aplikaciju zasnovana na ugovoru.
+
+    Opšta pravila (backend, Faza 2):
+    - 401: token nedostaje, nije validan ili pripada obrisanom nalogu. 403: korisnik nema ulogu za rutu.
+    - Brisanje naloga je meko: obrisan nalog se ne može prijaviti, ne pojavljuje se u listama,
+      a rute za njega vraćaju 404. Email obrisanog naloga se oslobađa za novi nalog.
+    - Decimalni broj u cjelobrojnom polju (npr. "grade": 4.5) daje 400, ne skraćuje se.
+    - averageGrade je svuda zaokružen na jednu decimalu.
+    - Greške su u formatu ErrorResponse; message navodi polje koje nije ispravno.
+    - Seed nalozi (admin@, radnik@, trener1-3@, clan1-5@pumpd.local) imaju lozinku pumpd123.
 
 servers:
   - url: http://localhost:8080/api 
@@ -329,7 +339,8 @@ paths:
 
   /admin/issues:
     get:
-      summary: Pregled prijavljenih problema (SU-59) 
+      summary: Pregled prijavljenih problema (SU-59)
+      description: Najnoviji problemi prvi. Bez parametra status vraća sve probleme.
       tags: [ Prijave problema ]
       parameters:
         - name: status
@@ -340,7 +351,7 @@ paths:
             enum: [UNPROCESSED, IN_PROGRESS, PROCESSED]
       responses:
         '200':
-          description: Lista problema
+          description: Lista problema (prazan niz ako nema problema)
           content:
             application/json:
               schema:
@@ -353,10 +364,23 @@ paths:
                     description: { type: string }
                     status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
                     reportDate: { type: string, format: date }
+        '400':
+          description: Nepoznata vrijednost parametra status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /admin/issues/{issueId}:
     patch:
-      summary: Obrada prijavljenog problema (SU-59) 
+      summary: Obrada prijavljenog problema (SU-59)
+      description: >
+        Administrator koji promijeni status postaje onaj koji je (zadnji) obradio problem.
+        Slanje istog statusa koji problem već ima nije greška.
       tags: [ Prijave problema ]
       parameters:
         - name: issueId
@@ -370,6 +394,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [status]
               properties:
                 status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
       responses:
@@ -383,15 +408,29 @@ paths:
                   issueId: { type: integer }
                   status: { type: string, enum: [UNPROCESSED, IN_PROGRESS, PROCESSED] }
                   message: { type: string }
+        '400':
+          description: Status nedostaje ili nije jedna od dozvoljenih vrijednosti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Problem ne postoji
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==========================================
   # 5. Teretana
   # ==========================================
   /gym/info:
     get:
-      summary: Pregled informacija o teretani (SU-02) 
+      summary: Pregled informacija o teretani (SU-02)
       security: []
       tags: [ Teretana ]
       responses:
@@ -402,14 +441,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/GymInfo'
     put:
-      summary: Uređivanje informacija o teretani (SU-50) 
+      summary: Uređivanje informacija o teretani (SU-50)
+      description: >
+        Sva polja su obavezna. Datum osnivanja ne smije biti u budućnosti.
+        Ostali podaci o teretani (adresa, vlasnik, kontakt, kapacitet) se ne mijenjaju.
       tags: [ Teretana ]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GymInfo'
+              $ref: '#/components/schemas/GymInfoUpdate'
       responses:
         '200':
           description: Informacije uređene
@@ -420,7 +462,15 @@ paths:
                 properties:
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Unesene informacije nisu validne (alternativni tok 5a)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /gym/occupancy:
     get:
@@ -464,11 +514,14 @@ paths:
   # ==========================================
   /trainers:
     get:
-      summary: Pregled svih naloga trenera (SU-11) 
+      summary: Pregled svih naloga trenera (SU-11)
+      description: >
+        Aktivni treneri, sortirani po prezimenu pa imenu. averageGrade je zaokružen na
+        jednu decimalu, a null ako trener nema recenzija.
       tags: [ Treneri ]
       responses:
         '200':
-          description: Lista trenera
+          description: Lista trenera (prazan niz ako nema trenera)
           content:
             application/json:
               schema:
@@ -480,10 +533,18 @@ paths:
                     name: { type: string }
                     surname: { type: string }
                     averageGrade: { type: number, nullable: true }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /trainers/{trainerId}:
     get:
-      summary: Pregled naloga trenera (SU-12) 
+      summary: Pregled naloga trenera (SU-12)
+      description: >
+        followStatus je odnos prijavljenog člana i trenera. Odbijen zahtjev za praćenje
+        se prikazuje kao NONE (član može poslati novi zahtjev). Recenzije su od najnovije,
+        a uključene su i recenzije obrisanih članova.
       tags: [ Treneri ]
       parameters:
         - name: trainerId
@@ -508,19 +569,24 @@ paths:
                   reviews:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        reviewId: { type: integer }
-                        memberName: { type: string }
-                        grade: { type: integer }
-                        comment: { type: string }
-                        date: { type: string, format: date }
+                      $ref: '#/components/schemas/Review'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Trener ne postoji ili je obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /trainers/{trainerId}/follow:
     post:
-      summary: Slanje zahtjeva za praćenje naloga trenera (SU-13) 
+      summary: Slanje zahtjeva za praćenje naloga trenera (SU-13)
+      description: >
+        Ako je trener ranije odbio zahtjev, novi zahtjev koristi isti red i vraća isti
+        followRequestId. Trener dobija obavještenje.
       tags: [ Treneri ]
       parameters:
         - name: trainerId
@@ -539,12 +605,27 @@ paths:
                   followRequestId: { type: integer }
                   status: { type: string, enum: [PENDING] }
                   message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Trener ne postoji ili je obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Zahtjev već čeka ili član već prati trenera
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Prekid praćenja naloga trenera (SU-15) 
+      summary: Prekid praćenja naloga trenera (SU-15)
+      description: >
+        Briše aktivno praćenje ("Pracenje je prekinuto.") ili povlači zahtjev koji još čeka
+        ("Zahtjev za pracenje je povucen.").
       tags: [ Treneri ]
       parameters:
         - name: trainerId
@@ -554,19 +635,32 @@ paths:
             type: integer
       responses:
         '200':
-          description: Praćenje prekinuto
+          description: Praćenje prekinuto ili zahtjev povučen
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Član ne prati trenera i nema zahtjev koji čeka (odbijen zahtjev se ne briše)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /trainers/{trainerId}/reviews:
     post:
-      summary: Ostavljanje recenzije treneru (SU-14) 
+      summary: Ostavljanje recenzije treneru (SU-14)
+      description: >
+        Član ima najviše jednu recenziju po treneru. Ponovna recenzija istog člana zamjenjuje
+        staru (isti reviewId, i dalje 201, poruka "Recenzija je azurirana."). Praćenje trenera
+        nije uslov. Trener dobija obavještenje sa ocjenom. averageGrade u odgovoru je novi
+        prosjek, zaokružen na jednu decimalu.
       tags: [ Treneri ]
       parameters:
         - name: trainerId
@@ -580,12 +674,13 @@ paths:
           application/json:
             schema:
               type: object
+              required: [grade]
               properties:
-                grade: { type: integer }
-                comment: { type: string }
+                grade: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201':
-          description: Recenzija dodata
+          description: Recenzija sačuvana (nova ili zamijenjena)
           content:
             application/json:
               schema:
@@ -595,17 +690,36 @@ paths:
                   averageGrade: { type: number }
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Ocjena nedostaje, van opsega 1–5 ili nije cijeli broj; komentar duži od 500 znakova
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Trener ne postoji ili je obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Istovremeno slanje dvije recenzije (dvostruki klik)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /trainer/reviews:
     get:
-      summary: Pregled recenzija (SU-07) 
+      summary: Pregled recenzija (SU-07)
+      description: Recenzije prijavljenog trenera, od najnovije. averageGrade je null ako nema recenzija.
       tags: [ Treneri ]
       responses:
         '200':
-          description: Lista recenzija trenera
+          description: Recenzije trenera
           content:
             application/json:
               schema:
@@ -615,13 +729,11 @@ paths:
                   reviews:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        reviewId: { type: integer }
-                        memberName: { type: string }
-                        grade: { type: integer }
-                        comment: { type: string }
-                        date: { type: string, format: date }
+                      $ref: '#/components/schemas/Review'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   # ==========================================
   # 8. Objave
@@ -858,11 +970,12 @@ paths:
   # ==========================================
   /trainer/follow-requests:
     get:
-      summary: Pregled zahtjeva za praćenje (SU-32) 
+      summary: Pregled zahtjeva za praćenje (SU-32)
+      description: Zahtjevi koji čekaju prijavljenog trenera, najstariji prvi, bez obrisanih članova.
       tags: [ Trener ]
       responses:
         '200':
-          description: Lista zahtjeva
+          description: Lista zahtjeva (prazan niz ako nema zahtjeva)
           content:
             application/json:
               schema:
@@ -874,10 +987,17 @@ paths:
                     memberId: { type: integer }
                     memberName: { type: string }
                     requestDate: { type: string, format: date }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /trainer/follow-requests/{requestId}:
     patch:
-      summary: Upravljanje zahtjevom za praćenje (SU-33) 
+      summary: Upravljanje zahtjevom za praćenje (SU-33)
+      description: >
+        Trener obrađuje samo zahtjeve upućene njemu. Član dobija obavještenje o odluci.
+        Odbijen zahtjev ostaje zapisan, a član može poslati novi.
       tags: [ Trener ]
       parameters:
         - name: requestId
@@ -891,6 +1011,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [status]
               properties:
                 status: { type: string, enum: [ACCEPTED, REJECTED] }
       responses:
@@ -902,18 +1023,37 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '400':
+          description: Status nedostaje ili nije ACCEPTED/REJECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Zahtjev ne postoji, upućen je drugom treneru ili je član obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Zahtjev je već obrađen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /trainer/followers:
     get:
-      summary: Pregled članova koji prate trenera (SU-60) 
+      summary: Pregled članova koji prate trenera (SU-60)
+      description: Prihvaćeni pratioci prijavljenog trenera, sortirani po prezimenu pa imenu, bez obrisanih članova.
       tags: [ Trener ]
       responses:
         '200':
-          description: Lista pratilaca
+          description: Lista pratilaca (prazan niz ako nema pratilaca)
           content:
             application/json:
               schema:
@@ -924,6 +1064,10 @@ paths:
                     memberId: { type: integer }
                     name: { type: string }
                     surname: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /trainer/schedule:
     get:
@@ -1220,7 +1364,11 @@ paths:
   # ==========================================
   /worker/members:
     get:
-      summary: Pregled svih članova (SU-44) 
+      summary: Pregled svih članova (SU-44)
+      description: >
+        Aktivni članovi, sortirani po prezimenu pa imenu. search traži po imenu, prezimenu,
+        emailu ili punom imenu ("Amar Hod"), bez obzira na velika i mala slova; prazan search
+        vraća sve. Članarina koja ističe danas je još aktivna.
       tags: [ Zaposleni ]
       parameters:
         - name: search
@@ -1230,7 +1378,7 @@ paths:
             type: string
       responses:
         '200':
-          description: Lista članova
+          description: Lista članova (prazan niz ako nema članova)
           content:
             application/json:
               schema:
@@ -1243,8 +1391,13 @@ paths:
                     surname: { type: string }
                     email: { type: string }
                     membershipActive: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
-      summary: Dodavanje člana (SU-46) 
+      summary: Dodavanje člana (SU-46)
+      description: Uloga novog naloga je uvijek MEMBER. Godina rođenja ne smije biti poslije tekuće godine.
       tags: [ Zaposleni ]
       requestBody:
         required: true
@@ -1252,14 +1405,15 @@ paths:
           application/json:
             schema:
               type: object
+              required: [name, surname, email, password]
               properties:
-                name: { type: string }
-                surname: { type: string }
-                email: { type: string }
-                password: { type: string }
-                birthYear: { type: integer, nullable: true }
-                weight: { type: number, nullable: true }
-                height: { type: number, nullable: true }
+                name: { type: string, minLength: 1, maxLength: 45 }
+                surname: { type: string, minLength: 1, maxLength: 45 }
+                email: { type: string, format: email, maxLength: 100 }
+                password: { type: string, minLength: 8, maxLength: 72 }
+                birthYear: { type: integer, nullable: true, minimum: 1900 }
+                weight: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true, maximum: 500 }
+                height: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true, maximum: 300 }
       responses:
         '201':
           description: Član dodat
@@ -1271,13 +1425,25 @@ paths:
                   memberId: { type: integer }
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Nevalidni podaci
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Email već postoji (bez obzira na velika i mala slova)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /worker/members/{memberId}:
     get:
-      summary: Pregled člana (SU-45) 
+      summary: Pregled člana (SU-45)
       tags: [ Zaposleni ]
       parameters:
         - name: memberId
@@ -1302,10 +1468,26 @@ paths:
                   height: { type: number, nullable: true }
                   membershipActive: { type: boolean }
                   membershipValidUntil: { type: string, format: date, nullable: true }
+        '400':
+          description: memberId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Član ne postoji, obrisan je ili id pripada drugom tipu naloga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Uklanjanje člana (SU-47) 
+      summary: Uklanjanje člana (SU-47)
+      description: >
+        Meko brisanje: nalog postaje neaktivan (ne može se prijaviti, stari token daje 401, ne pojavljuje se u listama), a email se oslobađa (obrisan-<id>@pumpd.invalid). Podaci vezani za nalog ostaju zbog istorije.
       tags: [ Zaposleni ]
       parameters:
         - name: memberId
@@ -1322,8 +1504,16 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Član ne postoji ili je već obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /worker/members/{memberId}/membership:
     get:
@@ -1476,11 +1666,12 @@ paths:
   # ==========================================
   /admin/trainers:
     get:
-      summary: Pregled svih trenera (SU-51) 
+      summary: Pregled svih trenera (SU-51)
+      description: Aktivni treneri, sortirani po prezimenu pa imenu.
       tags: [ Administrator ]
       responses:
         '200':
-          description: Lista trenera
+          description: Lista trenera (prazan niz ako nema trenera)
           content:
             application/json:
               schema:
@@ -1492,8 +1683,13 @@ paths:
                     name: { type: string }
                     surname: { type: string }
                     email: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
-      summary: Dodavanje trenera (SU-53) 
+      summary: Dodavanje trenera (SU-53)
+      description: Prazna biografija se čuva kao null.
       tags: [ Administrator ]
       requestBody:
         required: true
@@ -1501,12 +1697,13 @@ paths:
           application/json:
             schema:
               type: object
+              required: [name, surname, email, password]
               properties:
-                name: { type: string }
-                surname: { type: string }
-                email: { type: string }
-                password: { type: string }
-                biography: { type: string, nullable: true }
+                name: { type: string, minLength: 1, maxLength: 45 }
+                surname: { type: string, minLength: 1, maxLength: 45 }
+                email: { type: string, format: email, maxLength: 100 }
+                password: { type: string, minLength: 8, maxLength: 72 }
+                biography: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201':
           description: Trener dodat
@@ -1518,13 +1715,28 @@ paths:
                   trainerId: { type: integer }
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Nevalidni podaci
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Email već postoji (alternativni tok 4a)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /admin/trainers/{trainerId}:
     get:
-      summary: Pregled trenera (SU-52) 
+      summary: Pregled trenera (SU-52)
+      description: >
+        averageGrade je zaokružen na jednu decimalu (null ako nema recenzija; uključene su i
+        recenzije obrisanih članova). followerCount broji samo prihvaćena praćenja aktivnih članova.
       tags: [ Administrator ]
       parameters:
         - name: trainerId
@@ -1547,10 +1759,26 @@ paths:
                   biography: { type: string, nullable: true }
                   averageGrade: { type: number, nullable: true }
                   followerCount: { type: integer }
+        '400':
+          description: trainerId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Trener ne postoji, obrisan je ili id pripada drugom tipu naloga
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Uklanjanje trenera (SU-54) 
+      summary: Uklanjanje trenera (SU-54)
+      description: >
+        Meko brisanje: nalog postaje neaktivan (ne može se prijaviti, stari token daje 401, ne pojavljuje se u listama), a email se oslobađa (obrisan-<id>@pumpd.invalid). Podaci vezani za nalog ostaju zbog istorije.
       tags: [ Administrator ]
       parameters:
         - name: trainerId
@@ -1567,16 +1795,25 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Trener ne postoji ili je već obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /admin/workers:
     get:
-      summary: Pregled svih radnika (SU-55) 
+      summary: Pregled svih radnika (SU-55)
+      description: Aktivni radnici bez administratora, sortirani po prezimenu pa imenu.
       tags: [ Administrator ]
       responses:
         '200':
-          description: Lista radnika
+          description: Lista radnika (prazan niz ako nema radnika)
           content:
             application/json:
               schema:
@@ -1588,8 +1825,12 @@ paths:
                     name: { type: string }
                     surname: { type: string }
                     email: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
-      summary: Dodavanje radnika (SU-57) 
+      summary: Dodavanje radnika (SU-57)
       tags: [ Administrator ]
       requestBody:
         required: true
@@ -1597,11 +1838,12 @@ paths:
           application/json:
             schema:
               type: object
+              required: [name, surname, email, password]
               properties:
-                name: { type: string }
-                surname: { type: string }
-                email: { type: string }
-                password: { type: string }
+                name: { type: string, minLength: 1, maxLength: 45 }
+                surname: { type: string, minLength: 1, maxLength: 45 }
+                email: { type: string, format: email, maxLength: 100 }
+                password: { type: string, minLength: 8, maxLength: 72 }
       responses:
         '201':
           description: Radnik dodat
@@ -1613,13 +1855,25 @@ paths:
                   workerId: { type: integer }
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Nevalidni podaci
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Email već postoji (alternativni tok 4a)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /admin/workers/{workerId}:
     get:
-      summary: Pregled radnika (SU-56) 
+      summary: Pregled radnika (SU-56)
       tags: [ Administrator ]
       parameters:
         - name: workerId
@@ -1639,10 +1893,26 @@ paths:
                   name: { type: string }
                   surname: { type: string }
                   email: { type: string }
+        '400':
+          description: workerId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Radnik ne postoji, obrisan je ili je id administratora
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Uklanjanje radnika (SU-58) 
+      summary: Uklanjanje radnika (SU-58)
+      description: >
+        Meko brisanje: nalog postaje neaktivan (ne može se prijaviti, stari token daje 401, ne pojavljuje se u listama), a email se oslobađa (obrisan-<id>@pumpd.invalid). Podaci vezani za nalog ostaju zbog istorije.
       tags: [ Administrator ]
       parameters:
         - name: workerId
@@ -1659,8 +1929,16 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Radnik ne postoji ili je već obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -1701,6 +1979,27 @@ components:
         dateOfEstablishment: { type: string, format: date }
         workingHours: { type: string } 
         
+    # Tijelo zahtjeva 5.2: sva polja su obavezna
+    GymInfoUpdate:
+      type: object
+      required: [name, description, membershipPrice, dateOfEstablishment, workingHours]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 45 }
+        description: { type: string, minLength: 1, maxLength: 500 }
+        membershipPrice: { type: number, minimum: 0, exclusiveMinimum: true }
+        dateOfEstablishment: { type: string, format: date }
+        workingHours: { type: string, minLength: 1, maxLength: 45 }
+
+    # Reusable schema: Recenzija (7.2, 7.6); memberName = "Ime Prezime"
+    Review:
+      type: object
+      properties:
+        reviewId: { type: integer }
+        memberName: { type: string }
+        grade: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        date: { type: string, format: date }
+
     # Reusable schema: Objave (8.1, 8.3)
     Post:
       type: object
@@ -1716,6 +2015,20 @@ components:
   responses:
     Error:
       description: Standardni format greške (npr. 400, 401, 403, 404, 409) 
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Token nedostaje, nije validan ili pripada obrisanom nalogu
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Korisnik nema ulogu za ovu rutu
       content:
         application/json:
           schema:
