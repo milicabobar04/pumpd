@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { AppHeader, hasNotifications } from '../components';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
+import SettingsScreen from '../screens/common/SettingsScreen';
 import AuthStack from './AuthStack';
 import MemberTabs from './MemberTabs';
 import TrainerTabs from './TrainerTabs';
@@ -46,13 +47,8 @@ export default function RootNavigator() {
             ) : null}
             <Stack.Screen
               name="Settings"
-              component={PlaceholderScreen}
+              component={SettingsScreen}
               options={{ title: 'Podešavanja naloga' }}
-              initialParams={{
-                opis: 'Promjena lozinke, emaila i ličnih podataka',
-                rute: '2.2 (lozinka i email još nisu u ugovoru)',
-                faza: 1,
-              }}
             />
           </Stack.Group>
         </>
