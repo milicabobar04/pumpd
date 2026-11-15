@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { AppHeader, hasNotifications } from '../components';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
 import SettingsScreen from '../screens/common/SettingsScreen';
+import ReportIssueScreen from '../screens/public/ReportIssueScreen';
 import AuthStack from './AuthStack';
 import MemberTabs from './MemberTabs';
 import TrainerTabs from './TrainerTabs';
@@ -49,6 +50,12 @@ export default function RootNavigator() {
               name="Settings"
               component={SettingsScreen}
               options={{ title: 'Podešavanja naloga' }}
+            />
+            <Stack.Screen
+              name="ReportIssue"
+              component={ReportIssueScreen}
+              options={{ title: 'Prijava problema' }}
+              initialParams={{ embedded: true }}
             />
           </Stack.Group>
         </>

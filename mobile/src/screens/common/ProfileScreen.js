@@ -253,9 +253,6 @@ export default function ProfileScreen({ navigation }) {
     }
   }, []);
 
-  // Učitava profil svaki put kad ekran dobije fokus: pri prvom otvaranju,
-  // povratku iz Podešavanja (npr. poslije promjene lozinke) i prelasku sa drugog taba.
-  // Spinner se prikazuje samo dok profila još nema; kasnija osvježavanja idu "u pozadini".
   useFocusEffect(
     useCallback(() => {
       loadProfile();
@@ -319,6 +316,12 @@ export default function ProfileScreen({ navigation }) {
         ) : (
           <Button title="Uredi profil" variant="action" onPress={() => setEditing(true)} />
         )}
+
+        <Button
+          title="Prijavi problem"
+          variant="action"
+          onPress={() => navigation.navigate('ReportIssue')}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
