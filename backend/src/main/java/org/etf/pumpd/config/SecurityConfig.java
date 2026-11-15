@@ -53,6 +53,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.PUT, "/api/gym/info").hasRole("ADMIN")
 				.requestMatchers("/api/trainers/**").hasRole("MEMBER")
 				.requestMatchers("/api/trainer/**").hasRole("TRAINER")
+				.requestMatchers("/api/membership/**").hasRole("MEMBER")
 				.anyRequest().authenticated());
 
 		return http.build();

@@ -36,7 +36,19 @@ public class Clanarina {
 		this.datumPocetka = datumPocetka;
 		this.datumIsteka = datumIsteka;
 	}
-
+	public void postavi(Double cijena, LocalDate datumPocetka,LocalDate datumIsteka)
+	{
+		this.cijena=cijena;
+		this.datumPocetka=datumPocetka;
+		this.datumIsteka=datumIsteka;
+	}
+	public LocalDate produzi(int brojMjeseci, LocalDate danas)
+	{
+		LocalDate osnova=jeAktivna(danas)? datumIsteka:danas;
+		this.datumIsteka=osnova.plusMonths(brojMjeseci);
+		this.datumPocetka=danas;
+		return datumIsteka;
+	}
 	/** Članarina je aktivna dok datum isteka nije prošao (validUntil >= danas). */
 	public boolean jeAktivna(LocalDate danas) {
 		return !datumIsteka.isBefore(danas);
