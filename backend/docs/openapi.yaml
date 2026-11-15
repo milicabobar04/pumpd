@@ -156,7 +156,10 @@ paths:
 
   /membership/my-status:
     get:
-      summary: Pregled podataka o članarini (SU-09) 
+      summary: Pregled podataka o članarini (SU-09)
+      description: >
+        Samo MEMBER. isActive je true dok validUntil nije prošao (članarina koja ističe danas je aktivna).
+        404 ako prijavljeni član nema članarinu.
       tags: [ Nalog i profil ]
       responses:
         '200':
@@ -170,7 +173,12 @@ paths:
                   validUntil: { type: string, format: date }
                   price: { type: number }
                   isActive: { type: boolean }
-                  qrCodeUrl: { type: string }
+                  qrCodeUrl:
+                    type: string
+                    description: >
+                      QR kod člana kao PNG slika u obliku data URL-a
+                      (data:image/png;base64,...); aplikacija ga prikazuje direktno kao izvor slike.
+                    example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
         '404':
           $ref: '#/components/responses/Error'
 
@@ -1566,7 +1574,10 @@ paths:
 
   /worker/members/{memberId}/membership:
     get:
-      summary: Pregled statusa članarine (SU-48) 
+      summary: Pregled statusa članarine (SU-48)
+      description: >
+        isActive se računa: true dok validUntil nije prošao (članarina koja ističe danas je aktivna).
+        404 ako član ne postoji ili nema članarinu.
       tags: [ Zaposleni ]
       parameters:
         - name: memberId
@@ -1589,7 +1600,11 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
     put:
-      summary: Uređivanje statusa članarine (SU-49) 
+      summary: Uređivanje statusa članarine (SU-49)
+      description: >
+        Postavlja članarinu članu. Ako član nema članarinu, kreira se.
+        400 ako neko polje nedostaje, ako je validUntil prije paymentDate ili je price negativan.
+        404 ako član ne postoji.
       tags: [ Zaposleni ]
       parameters:
         - name: memberId
@@ -1603,13 +1618,14 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ paymentDate, validUntil, price ]
               properties:
                 paymentDate: { type: string, format: date }
                 validUntil: { type: string, format: date }
-                price: { type: number }
+                price: { type: number, minimum: 0, maximum: 100000 }
       responses:
         '200':
-          description: Članarina uređena
+          description: Članarina sačuvana (izmijenjena ili kreirana)
           content:
             application/json:
               schema:
@@ -1623,7 +1639,12 @@ paths:
 
   /worker/members/{memberId}/membership/extend:
     post:
-      summary: Produženje članarine (SU-49) 
+      summary: Produženje članarine (SU-49)
+      description: >
+        Aktivna članarina (uključujući onu koja ističe danas) produžava se od validUntil,
+        istekla od današnjeg dana. paymentDate postaje današnji datum, cijena se ne mijenja.
+        400 ako numMonths nije cijeli broj od 1 do 24.
+        404 ako član ne postoji ili nema članarinu (prvo je treba postaviti preko PUT).
       tags: [ Zaposleni ]
       parameters:
         - name: memberId
@@ -1637,8 +1658,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ numMonths ]
               properties:
-                numMonths: { type: integer }
+                numMonths: { type: integer, minimum: 1, maximum: 24 }
       responses:
         '200':
           description: Članarina produžena
