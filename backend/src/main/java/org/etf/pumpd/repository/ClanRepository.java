@@ -30,4 +30,8 @@ public interface ClanRepository extends JpaRepository<Clan,Integer> {
 	/** Član sa aktivnim nalogom; obrisan (neaktivan) član se tretira kao da ne postoji. */
 	@Query("SELECT c FROM Clan c JOIN FETCH c.nalog n WHERE c.id = :id AND n.aktivan = true")
 	Optional<Clan> pronadjiAktivnog(@Param("id") Integer id);
+
+	/** 11.8, 11.9: član sa aktivnim nalogom po QR kodu sa kartice. */
+	@Query("SELECT c FROM Clan c JOIN FETCH c.nalog n WHERE c.qrKod = :qrKod AND n.aktivan = true")
+	Optional<Clan> pronadjiAktivnogPoQrKodu(@Param("qrKod") String qrKod);
 }

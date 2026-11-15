@@ -525,7 +525,11 @@ paths:
 
   /gym/occupancy:
     get:
-      summary: Pregled zauzetosti teretane (SU-10) 
+      summary: Pregled zauzetosti teretane (SU-10)
+      description: >
+        Svaki prijavljeni korisnik. currentMembers je broj članova kojima je danas evidentiran
+        ulazak (11.8), a još nije izlazak (11.9). capacity je kapacitet iz informacija o teretani
+        (null ako nije unesen).
       tags: [ Teretana ]
       responses:
         '200':
@@ -1678,7 +1682,12 @@ paths:
 
   /worker/attendance/entry:
     post:
-      summary: Evidencija dolaska skeniranjem QR koda (SU-10) 
+      summary: Evidencija dolaska skeniranjem QR koda (SU-10)
+      description: >
+        Samo WORKER. Ako član nema članarinu ili mu je istekla, odgovor je 200 sa isAllowed = false
+        i ulazak se ne evidentira (članarina koja ističe danas je aktivna).
+        400 ako qrCode nedostaje ili je prazan. 404 ako član sa tim QR kodom ne postoji ili je obrisan.
+        409 ako je član već u teretani (danas evidentiran ulazak bez izlaska).
       tags: [ Zaposleni ]
       requestBody:
         required: true
@@ -1686,11 +1695,12 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ qrCode ]
               properties:
-                qrCode: { type: string }
+                qrCode: { type: string, maxLength: 64 }
       responses:
         '200':
-          description: Dolazak evidentiran
+          description: Rezultat skeniranja (isAllowed kaže da li je ulazak evidentiran)
           content:
             application/json:
               schema:
@@ -1700,12 +1710,20 @@ paths:
                   memberName: { type: string }
                   isAllowed: { type: boolean }
                   message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
         '404':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
 
   /worker/attendance/exit:
     post:
-      summary: Evidencija izlaska skeniranjem QR koda 
+      summary: Evidencija izlaska skeniranjem QR koda
+      description: >
+        Samo WORKER. Zatvara današnji ulazak člana. 400 ako qrCode nedostaje ili je prazan.
+        404 ako član sa tim QR kodom ne postoji ili je obrisan. 409 ako član danas nema
+        evidentiran ulazak bez izlaska (ulazak iz ranijeg dana se ne može zatvoriti).
       tags: [ Zaposleni ]
       requestBody:
         required: true
@@ -1713,8 +1731,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ qrCode ]
               properties:
-                qrCode: { type: string }
+                qrCode: { type: string, maxLength: 64 }
       responses:
         '200':
           description: Izlazak evidentiran
@@ -1725,8 +1744,10 @@ paths:
                 properties:
                   memberId: { type: integer }
                   memberName: { type: string }
-                  exitTime: { type: string, format: date-time }
+                  exitTime: { type: string, format: date-time, example: '2026-11-15T18:30:05' }
                   message: { type: string }
+        '400':
+          $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
         '409':
