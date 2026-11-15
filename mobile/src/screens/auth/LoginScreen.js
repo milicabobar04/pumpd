@@ -20,7 +20,7 @@ const ROLE_LABELS = {
   ADMIN: 'Uđi kao administrator',
 };
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
 
   return (
@@ -38,6 +38,17 @@ export default function LoginScreen() {
           />
         ))}
       </Card>
+
+      <Button
+        title="Informacije"
+        variant="information"
+        onPress={() => navigation.navigate('GymInfo')}
+      />
+      <Button
+        title="Prijavite problem"
+        variant="textLink"
+        onPress={() => navigation.navigate('ReportIssue')}
+      />
     </SafeAreaView>
   );
 }
