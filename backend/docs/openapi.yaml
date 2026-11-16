@@ -207,6 +207,9 @@ paths:
   /training-plans:
     get:
       summary: Pregled planova treninga (SU-21) 
+      description: >
+        Samo MEMBER i TRAINER. Vraća planove kojima je prijavljeni korisnik vlasnik
+        (koje je sam kreirao), najnoviji prvi.
       tags: [ Planovi treninga ]
       responses:
         '200':
@@ -224,6 +227,10 @@ paths:
                     durationMinutes: { type: integer }
     post:
       summary: Kreiranje plana treninga (SU-23) 
+      description: >
+        Samo MEMBER i TRAINER; vlasnik plana je prijavljeni korisnik. Plan mora imati bar jednu vježbu.
+        exerciseId se ne šalje (dodjeljuje ga server). Prazan description se čuva kao null.
+        400 za nedostajuće ili neispravne podatke.
       tags: [ Planovi treninga ]
       requestBody:
         required: true
@@ -231,18 +238,22 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ name, durationMinutes, exercises ]
               properties:
-                name: { type: string }
-                description: { type: string, nullable: true }
-                durationMinutes: { type: integer }
+                name: { type: string, maxLength: 45 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                durationMinutes: { type: integer, minimum: 1, maximum: 600 }
                 exercises:
                   type: array
+                  minItems: 1
+                  maxItems: 50
                   items:
                     type: object
+                    required: [ name, numSets, numRepetitions ]
                     properties:
-                      name: { type: string }
-                      numSets: { type: integer }
-                      numRepetitions: { type: integer }
+                      name: { type: string, maxLength: 45 }
+                      numSets: { type: integer, minimum: 1, maximum: 100 }
+                      numRepetitions: { type: integer, minimum: 1, maximum: 1000 }
       responses:
         '201':
           description: Plan kreiran
@@ -259,6 +270,9 @@ paths:
   /training-plans/{planId}:
     get:
       summary: Pregled plana (SU-22) 
+      description: >
+        Samo vlasnik plana. Vježbe su u redoslijedu dodavanja. 403 ako plan pripada drugom
+        korisniku, 404 ako plan ne postoji.
       tags: [ Planovi treninga ]
       parameters:
         - name: planId
@@ -293,6 +307,12 @@ paths:
           $ref: '#/components/responses/Error'
     put:
       summary: Uređivanje plana treninga (SU-25) 
+      description: >
+        Samo vlasnik plana. Šalje se cijeli plan; lista exercises postaje nova lista vježbi:
+        vježba sa exerciseId se mijenja, vježba bez exerciseId se dodaje, a vježba plana koje
+        nema u listi se briše. Ista pravila validacije kao pri kreiranju.
+        400 ako exerciseId ne pripada ovom planu ili se ponavlja. 403 ako plan pripada
+        drugom korisniku, 404 ako plan ne postoji.
       tags: [ Planovi treninga ]
       parameters:
         - name: planId
@@ -306,19 +326,23 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ name, durationMinutes, exercises ]
               properties:
-                name: { type: string }
-                description: { type: string, nullable: true }
-                durationMinutes: { type: integer }
+                name: { type: string, maxLength: 45 }
+                description: { type: string, nullable: true, maxLength: 500 }
+                durationMinutes: { type: integer, minimum: 1, maximum: 600 }
                 exercises:
                   type: array
+                  minItems: 1
+                  maxItems: 50
                   items:
                     type: object
+                    required: [ name, numSets, numRepetitions ]
                     properties:
                       exerciseId: { type: integer, nullable: true }
-                      name: { type: string }
-                      numSets: { type: integer }
-                      numRepetitions: { type: integer }
+                      name: { type: string, maxLength: 45 }
+                      numSets: { type: integer, minimum: 1, maximum: 100 }
+                      numRepetitions: { type: integer, minimum: 1, maximum: 1000 }
       responses:
         '200':
           description: Uspješno uređeno
@@ -336,6 +360,9 @@ paths:
           $ref: '#/components/responses/Error'
     delete:
       summary: Brisanje plana treninga (SU-26) 
+      description: >
+        Samo vlasnik plana. Plan se briše zajedno sa svojim vježbama.
+        403 ako plan pripada drugom korisniku, 404 ako plan ne postoji.
       tags: [ Planovi treninga ]
       parameters:
         - name: planId
