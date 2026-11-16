@@ -54,6 +54,7 @@ public class SecurityConfig {
 				.requestMatchers("/api/trainers/**").hasRole("MEMBER")
 				.requestMatchers("/api/trainer/**").hasRole("TRAINER")
 				.requestMatchers("/api/membership/**").hasRole("MEMBER")
+				.requestMatchers("/api/training-plans/**").hasAnyRole("MEMBER", "TRAINER")
 				.anyRequest().authenticated());
 
 		return http.build();
