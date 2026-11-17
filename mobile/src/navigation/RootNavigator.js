@@ -2,7 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { AppHeader, hasNotifications } from '../components';
-import PlaceholderScreen from '../screens/common/PlaceholderScreen';
+import NotificationsScreen from '../screens/common/NotificationsScreen';
 import SettingsScreen from '../screens/common/SettingsScreen';
 import ReportIssueScreen from '../screens/public/ReportIssueScreen';
 import AuthStack from './AuthStack';
@@ -41,9 +41,8 @@ export default function RootNavigator() {
             {hasNotifications(role) ? (
               <Stack.Screen
                 name="Notifications"
-                component={PlaceholderScreen}
+                component={NotificationsScreen}
                 options={{ title: 'Obavještenja' }}
-                initialParams={{ opis: 'Lista obavještenja', rute: '6.1', faza: 1 }}
               />
             ) : null}
             <Stack.Screen
