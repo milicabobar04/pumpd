@@ -25,4 +25,8 @@ public interface ClanNaTerminuRepository extends JpaRepository<ClanNaTerminu,Cla
 	@Modifying
 	@Query("DELETE FROM ClanNaTerminu p WHERE p.termin.id = :idTermina")
 	int obrisiSveZaTermin(@Param("idTermina") Integer idTermina);
+
+	/** Id-jevi članova čija prijava na termin ima jedan od datih statusa, bez učitavanja prijava (10.7). */
+	@Query("SELECT p.id.clanId FROM ClanNaTerminu p WHERE p.termin.id = :idTermina AND p.status IN :statusi")
+	List<Integer> idClanova(@Param("idTermina") Integer idTermina, @Param("statusi") Collection<StatusPrijave> statusi);
 }
