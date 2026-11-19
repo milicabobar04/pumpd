@@ -1294,6 +1294,9 @@ paths:
   /trainer/groups:
     get:
       summary: Pregled svih grupa (SU-34) 
+      description: >
+        Samo TRAINER. Grupe prijavljenog trenera (svaka pripada jednom terminu): prvo predstojeći
+        termini (najbliži prvi), pa prošli (najnoviji prvi). memberCount je broj članova grupe.
       tags: [ Trener ]
       responses:
         '200':
@@ -1315,6 +1318,9 @@ paths:
   /trainer/groups/{groupId}/members:
     get:
       summary: Pregled svih članova grupe (SU-38) 
+      description: >
+        Samo vlasnik grupe. Članovi po prezimenu i imenu, bez obrisanih naloga.
+        403 za tuđu grupu, 404 ako grupa ne postoji.
       tags: [ Trener ]
       parameters:
         - name: groupId
@@ -1341,6 +1347,11 @@ paths:
           $ref: '#/components/responses/Error'
     post:
       summary: Dodavanje člana u grupu (SU-60) 
+      description: >
+        Samo vlasnik grupe. Član se bira iz liste pratilaca (10.3) i upisuje se i u grupu i u termin
+        (enrollmentStatus postaje ACCEPTED; zahtjev koji čeka se prihvata). Član dobija obavještenje.
+        400 ako član nije aktivan pratilac trenera, 403 za tuđu grupu, 404 ako grupa ili član ne postoji,
+        409 ako je član već u grupi, grupa je puna ili je termin već počeo.
       tags: [ Trener ]
       parameters:
         - name: groupId
@@ -1354,8 +1365,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ memberId ]
               properties:
-                memberId: { type: integer }
+                memberId: { type: integer, minimum: 1 }
       responses:
         '201':
           description: Član dodat u grupu
@@ -1367,6 +1379,8 @@ paths:
                   message: { type: string }
         '400':
           $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -1375,6 +1389,10 @@ paths:
   /trainer/groups/{groupId}/members/{memberId}:
     delete:
       summary: Uklanjanje člana iz grupe (SU-39) 
+      description: >
+        Samo vlasnik grupe. Član se uklanja iz grupe i iz termina (enrollmentStatus postaje NONE,
+        pa može ponovo poslati zahtjev) i dobija obavještenje. 403 za tuđu grupu, 404 ako grupa
+        ne postoji ili član nije u njoj, 409 ako je termin već počeo.
       tags: [ Trener ]
       parameters:
         - name: groupId
@@ -1396,7 +1414,11 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '403':
+          $ref: '#/components/responses/Error'
         '404':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
 
   /trainer/group-requests:

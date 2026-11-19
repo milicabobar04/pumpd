@@ -15,6 +15,7 @@ import org.etf.pumpd.exception.*;
 import org.etf.pumpd.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -68,7 +69,10 @@ public class TerminTreneraService {
 		return new KreiranjeTerminaOdgovor(termin.getId(), grupa.getId(), "Termin je dodat.");
 	}
 	
-	@Transactional
+	// READ_COMMITTED: nakon čekanja na zaključanu grupu, brojanje članova mora vidjeti
+	// članove koje je u međuvremenu upisala druga transakcija (MySQL podrazumijeva REPEATABLE READ,
+	// koji bi vratio stari broj, pa bi dva istovremena dodavanja zauzela isto posljednje mjesto).
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	public PorukaDto izmijeni(Integer idTrenera, Integer sessionId, TerminZahtjev zahtjev) {
 		Termin termin = ucitajSvoj(idTrenera, sessionId);
 		if (termin.jePoceo(sada())) {
