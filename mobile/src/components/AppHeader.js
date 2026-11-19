@@ -49,18 +49,23 @@ const LogoutIcon = ({ onPress }) => (
 //
 // navigation: dobija se od React Navigation (header: ({ navigation }) => ...)
 // showBack:   strelica nazad, samo kad ima kuda nazad (ne na početnom ekranu uloge)
-export const AppHeader = ({ navigation, showBack = false }) => {
+// minimal:    samo logo i odjava (ekran obavezne promjene privremene lozinke,
+//             gdje ne postoje ekrani Obavještenja i Podešavanja)
+export const AppHeader = ({ navigation, showBack = false, minimal = false }) => {
   const insets = useSafeAreaInsets();
-  const { role, signOut } = useAuth();
+  const { role, logout: logoutUser } = useAuth();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const withBell = hasNotifications(role);
+  const withBell = !minimal && hasNotifications(role);
   const logout = <LogoutIcon onPress={() => setLogoutOpen(true)} />;
 
-  // Faza 1: prije signOut() pozvati POST /auth/logout (1.2), uz loading na dugmetu.
-  const confirmLogout = () => {
-    setLogoutOpen(false);
-    signOut();
+  // SU-04: POST /auth/logout (1.2), pa brisanje sesije sa uređaja.
+  // Dijalog ostaje otvoren sa spinnerom dok poziv traje; kad se sesija obriše,
+  // RootNavigator prikazuje ekran prijave i ovaj header nestaje.
+  const confirmLogout = async () => {
+    setLoggingOut(true);
+    await logoutUser();
   };
 
   return (
@@ -70,7 +75,7 @@ export const AppHeader = ({ navigation, showBack = false }) => {
         {showBack ? (
           <HeaderIcon name="arrow-back" label="Nazad" onPress={() => navigation.goBack()} />
         ) : null}
-        {withBell ? logout : null}
+         {withBell || minimal ? logout : null}
       </View>
 
       <Logo height={36} />
@@ -82,14 +87,16 @@ export const AppHeader = ({ navigation, showBack = false }) => {
             label="Obavještenja"
             onPress={() => navigation.navigate('Notifications')}
           />
-        ) : (
+        ) : minimal ? null : (
           logout
         )}
-        <HeaderIcon
-          name="settings-outline"
-          label="Podešavanja naloga"
-          onPress={() => navigation.navigate('Settings')}
-        />
+        {minimal ? null : (
+          <HeaderIcon
+            name="settings-outline"
+            label="Podešavanja naloga"
+            onPress={() => navigation.navigate('Settings')}
+          />
+        )}
       </View>
 
       <ConfirmDialog
@@ -98,6 +105,7 @@ export const AppHeader = ({ navigation, showBack = false }) => {
         message="Da li ste sigurni da želite da se odjavite?"
         confirmLabel="Odjavi se"
         confirmVariant="danger"
+        loading={loggingOut}
         onConfirm={confirmLogout}
         onCancel={() => setLogoutOpen(false)}
       />

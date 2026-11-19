@@ -6,11 +6,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#2F2C34",
-    "ios": { "supportsTablet": false },
+    "ios": {
+      "supportsTablet": false
+    },
     "android": {},
     "plugins": [
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-secure-store"
     ]
   }
 }

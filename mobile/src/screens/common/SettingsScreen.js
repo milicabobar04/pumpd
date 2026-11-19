@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, FormField, ErrorMessage } from '../../components';
 import { theme } from '../../theme';
 import { changePassword } from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
 
 const { colors, spacing, borderRadius, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
@@ -44,6 +45,9 @@ function validate({ oldPassword, newPassword, confirmPassword }) {
 }
 
 export default function SettingsScreen() {
+  // mustChangePassword: korisnik je prijavljen privremenom lozinkom i RootNavigator
+  // ga drži na ovom ekranu dok je ne promijeni.
+  const { mustChangePassword, markPasswordChanged } = useAuth();
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -73,6 +77,8 @@ export default function SettingsScreen() {
       const result = await changePassword(form.oldPassword, form.newPassword);
       setForm(EMPTY_FORM);
       setSuccess(result?.message || SUCCESS_FALLBACK);
+      // Privremena lozinka je zamijenjena: RootNavigator sada pušta korisnika u njegov dio.
+      if (mustChangePassword) await markPasswordChanged();
     } catch (e) {
       setError(e);
     } finally {
@@ -89,6 +95,11 @@ export default function SettingsScreen() {
         <Text style={typography.screenTitle} accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
           Promjena lozinke
         </Text>
+        {mustChangePassword ? (
+          <Text style={styles.forced} accessibilityRole="alert" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+            Prijavili ste se privremenom lozinkom. Postavite svoju lozinku da biste nastavili.
+          </Text>
+        ) : null}
         <Text style={styles.hint} maxFontSizeMultiplier={MAX_FONT_SCALE}>
           Nova lozinka mora imati od {MIN_LENGTH} do {MAX_LENGTH} znakova.
         </Text>
@@ -166,6 +177,10 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.caption,
+  },
+  forced: {
+    ...typography.body,
+    color: colors.error,
   },
   success: {
     flexDirection: 'row',

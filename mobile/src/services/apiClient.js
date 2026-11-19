@@ -14,6 +14,9 @@ export const setOnUnauthorized = (callback) => { onUnauthorized = callback; };
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  // Bez roka axios čeka zauvijek ako server ne odgovori (pogrešna adresa, ugašen server),
+  // pa bi dugme ostalo sa spinnerom. Poslije 15 s ekran prikaže "Nema veze sa serverom".
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -6,13 +6,11 @@ import { theme } from '../theme';
 const { colors, fonts, spacing, borderRadius, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
 
+// Visina polja iz Figme
+const FIELD_HEIGHT = 42;
+
 // Polje forme: labela, unos i poruka o grešci ispod polja.
-// Svi ostali props (value, onChangeText, placeholder, keyboardType,
-// autoCapitalize, returnKeyType, onSubmitEditing...) idu direktno na TextInput.
-// forwardRef omogućava prelazak na sljedeće polje: ref.current.focus().
-//
-// Napomena: izgled polja (pozadina, obrub, visina) nije preuzet iz Figme.
-// Kad otvoriš polje za unos u Figmi (Inspect), uskladi styles.inputRow i styles.input.
+// Ostali props (value, onChangeText, placeholder, keyboardType...) idu na TextInput.
 export const FormField = forwardRef(function FormField(
   {
     label,
@@ -30,8 +28,10 @@ export const FormField = forwardRef(function FormField(
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(secureTextEntry);
 
-  // Greška ima prednost nad fokusom, fokus nad običnim stanjem.
+  // Greška ima prednost nad fokusom.
   const borderColor = error ? colors.error : focused ? colors.primary : colors.border;
+  // Polje u više redova (npr. opis problema) raste u visinu, pa ne smije imati fiksnu visinu.
+  const multiline = inputProps.multiline === true;
 
   return (
     <View style={[styles.wrapper, style]}>
@@ -41,10 +41,17 @@ export const FormField = forwardRef(function FormField(
         </Text>
       ) : null}
 
-      <View style={[styles.inputRow, { borderColor }, !editable && styles.disabled]}>
+      <View
+        style={[
+          styles.inputRow,
+          multiline && styles.inputRowMultiline,
+          { borderColor },
+          !editable && styles.disabled,
+        ]}
+      >
         <TextInput
           ref={ref}
-          style={[styles.input, inputStyle]}
+          style={[styles.input, multiline && styles.inputMultiline, inputStyle]}
           placeholderTextColor={colors.inputPlaceholder}
           selectionColor={colors.primary}
           cursorColor={colors.primary}
@@ -64,7 +71,6 @@ export const FormField = forwardRef(function FormField(
           {...inputProps}
         />
 
-        {/* Oko za prikaz lozinke, samo kad je polje za lozinku */}
         {secureTextEntry ? (
           <Pressable
             onPress={() => setHidden((h) => !h)}
@@ -76,7 +82,7 @@ export const FormField = forwardRef(function FormField(
             <Ionicons
               name={hidden ? 'eye-outline' : 'eye-off-outline'}
               size={22}
-              color={colors.iconMuted}
+              color={colors.inputPlaceholder}
             />
           </Pressable>
         ) : null}
@@ -93,34 +99,62 @@ export const FormField = forwardRef(function FormField(
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: spacing.px6,
+    gap: spacing.px8,
   },
+
+  // Figma: Actor 18 / 25.2, zelena
   label: {
     ...typography.label,
+    lineHeight: 25.2,
+    color: colors.primary,
+    includeFontPadding: false,
   },
+
+  // Visina kao u Figmi; tekst se centrira sam, bez paddingVertical.
+  // minHeight umjesto height, da polje u više redova može da raste.
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48, // najmanja površina za dodir
+    minHeight: FIELD_HEIGHT,
     paddingHorizontal: spacing.px16,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderRadius: borderRadius.px8,
   },
+
+  // Bez lineHeight: na TextInput-u zna odsjeći slova ili pomjeriti kursor.
   input: {
     flex: 1,
-    paddingVertical: spacing.px12,
-    fontFamily: fonts.inter400,
-    fontSize: 16,
-    color: colors.textPrimary,
+    minHeight: FIELD_HEIGHT - 2, // cijela visina reda bez obruba (2 x 1 px), da je cijelo polje za dodir
+    paddingVertical: 0,
+    fontFamily: fonts.actor400,
+    fontSize: 18,
+    color: colors.border,
     includeFontPadding: false,
   },
+
+  // Više redova: tekst počinje gore, a ne u sredini, i ima mali razmak od obruba.
+  inputRowMultiline: {
+    alignItems: 'stretch',
+  },
+  inputMultiline: {
+    paddingVertical: spacing.px8,
+    textAlignVertical: 'top',
+  },
+
   eye: {
     marginLeft: spacing.px8,
   },
+
+  // Figma: Inter 16 / 22.4
   error: {
-    ...typography.error,
+    fontFamily: fonts.inter400,
+    fontSize: 16,
+    lineHeight: 22.4,
+    color: colors.error,
+    includeFontPadding: false,
   },
+
   disabled: {
     opacity: 0.6,
   },

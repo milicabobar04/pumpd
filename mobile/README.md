@@ -42,10 +42,20 @@ Mock odgovara prema `openapi.yaml`:
 - ne pamti podatke (POST/DELETE ne mijenjaju liste) i ne provjerava uloge (403),
 - određeni status vraća na zahtjev iz Postmana/curla zaglavljem `Prefer: code=404`.
 
-## Prijava u Fazi 0
+## Prijava i odjava (Faza 1, SU-03, SU-04)
 
-Ekran prijave je privremen: četiri dugmeta, po jedno za svaku ulogu (`MEMBER`, `TRAINER`, `WORKER`, `ADMIN`).
-U Fazi 1 ga zamjenjuje forma koja zove `POST /auth/login` i prosljeđuje odgovor u `signIn(...)`.
+- Ekran prijave zove `POST /auth/login` i odgovor prosljeđuje u `signIn(...)` iz `AuthContext`.
+  `RootNavigator` zatim sam prikazuje dio aplikacije za ulogu korisnika.
+- Token i podaci o korisniku čuvaju se u `expo-secure-store` (`services/sessionStorage.js`),
+  pa korisnik ostaje prijavljen i poslije zatvaranja aplikacije. Istekao JWT se briše pri pokretanju.
+- Odjava (ikona u headeru) traži potvrdu, zove `POST /auth/logout` i briše sesiju sa uređaja.
+  Odgovor 401 na bilo kojoj ruti odjavljuje korisnika samo na uređaju.
+- Ako prijava vrati `mustChangePassword: true`, korisnik vidi samo ekran promjene lozinke
+  dok je ne promijeni (`PUT /users/my-password`).
+
+Nalozi za testiranje nad pravim backendom su u `backend/src/main/resources/db/seed/seed_test_podaci.sql`
+(`admin@`, `radnik@`, `trener1@`, `clan1@pumpd.local`). Mock server prihvata bilo koji email i lozinku
+i uvijek vraća isti primjer korisnika iz `openapi.yaml`.
 
 ## Struktura
 

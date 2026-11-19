@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { AppHeader, hasNotifications } from '../components';
 import NotificationsScreen from '../screens/common/NotificationsScreen';
@@ -27,13 +29,53 @@ const innerScreenOptions = {
   header: ({ navigation }) => <AppHeader navigation={navigation} showBack />,
 };
 
+// Ekran obavezne promjene privremene lozinke: header bez nazad, zvonca i zupčanika,
+// jer korisnik ne smije dalje dok ne promijeni lozinku. Odjava ostaje.
+const forcedPasswordOptions = {
+  headerShown: true,
+  header: ({ navigation }) => <AppHeader navigation={navigation} minimal />,
+};
+
+// Bira šta se prikazuje na osnovu stanja iz AuthContext-a. Ekrani se ne mijenjaju
+// sa navigation.navigate(...) poslije prijave ili odjave: kad se promijeni isSignedIn,
+// role ili mustChangePassword, ovdje se renderuje drugi skup ekrana
+// (preporučeni "auth flow" iz React Navigation dokumentacije).
+//
+//   1. isRestoring          -> spinner dok se čita sesija sa uređaja
+//   2. nije prijavljen      -> AuthStack (prijava, informacije, prijava problema)
+//   3. mustChangePassword   -> samo ekran promjene lozinke
+//   4. prijavljen           -> dio aplikacije za ulogu + zajednički unutrašnji ekrani
 export default function RootNavigator() {
-  const { isSignedIn, role } = useAuth();
+  const { isSignedIn, isRestoring, role, mustChangePassword, signOut } = useAuth();
   const RoleTabs = ROLE_NAVIGATORS[role];
+
+  // Prijavljen, ali uloga nije jedna od četiri poznate (pokvaren zapis ili izmjena ugovora):
+  // briše se sesija, inače bi korisnik ostao zaglavljen bez ijednog ekrana.
+  const unknownRole = isSignedIn && !RoleTabs;
+  useEffect(() => {
+    if (unknownRole) {
+      console.warn(`Nepoznata uloga "${role}", sesija se briše.`);
+      signOut();
+    }
+  }, [unknownRole, role, signOut]);
+
+  if (isRestoring) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={theme.colors.primary} accessibilityLabel="Učitavanje" />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-      {isSignedIn && RoleTabs ? (
+      {isSignedIn && RoleTabs && mustChangePassword ? (
+        <Stack.Screen
+          name="ForcedPasswordChange"
+          component={SettingsScreen}
+          options={forcedPasswordOptions}
+        />
+      ) : isSignedIn && RoleTabs ? (
         <>
           <Stack.Screen name={`App_${role}`} component={RoleTabs} />
 
@@ -64,3 +106,12 @@ export default function RootNavigator() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
