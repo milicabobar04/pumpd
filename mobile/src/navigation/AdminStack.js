@@ -3,6 +3,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AppHeader } from '../components';
 import MenuScreen from '../screens/common/MenuScreen';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
+import TrainersScreen from '../screens/admin/TrainersScreen';
+import TrainerDetailsScreen from '../screens/admin/TrainerDetailsScreen';
+import AddTrainerScreen from '../screens/admin/AddTrainerScreen';
+import WorkersScreen from '../screens/admin/WorkersScreen';
+import WorkerDetailsScreen from '../screens/admin/WorkerDetailsScreen';
+import AddWorkerScreen from '../screens/admin/AddWorkerScreen';
+
+
 
 const Stack = createNativeStackNavigator();
 
@@ -32,18 +40,13 @@ export default function AdminStack() {
         options={{ title: 'Uređivanje informacija' }}
         initialParams={{ opis: 'Informacije o teretani', rute: '5.1, 5.2', faza: 2 }}
       />
-      <Stack.Screen
-        name="AdminTrainers"
-        component={PlaceholderScreen}
-        options={{ title: 'Pregled svih trenera' }}
-        initialParams={{ opis: 'Lista, detalji, dodavanje i brisanje trenera', rute: '12.1–12.4', faza: 2 }}
-      />
-      <Stack.Screen
-        name="AdminWorkers"
-        component={PlaceholderScreen}
-        options={{ title: 'Pregled svih radnika' }}
-        initialParams={{ opis: 'Lista, detalji, dodavanje i brisanje radnika', rute: '12.5–12.8', faza: 2 }}
-      />
+      <Stack.Screen name="AdminTrainers" component={TrainersScreen} options={{ title: 'Pregled svih trenera' }} />
+      <Stack.Screen name="AdminTrainerDetails" component={TrainerDetailsScreen} options={{ title: 'Detalji trenera' }} />
+      <Stack.Screen name="AdminAddTrainer" component={AddTrainerScreen} options={{ title: 'Dodavanje trenera' }} />
+      <Stack.Screen name="AdminWorkers" component={WorkersScreen} options={{ title: 'Pregled svih radnika' }} />
+      <Stack.Screen name="AdminWorkerDetails" component={WorkerDetailsScreen} options={{ title: 'Detalji radnika' }} />
+      <Stack.Screen name="AdminAddWorker" component={AddWorkerScreen} options={{ title: 'Dodavanje radnika' }} />
+
       <Stack.Screen
         name="AdminIssues"
         component={PlaceholderScreen}
