@@ -8,3 +8,4 @@ export { FormField } from './FormField';
 export { ListItem } from './ListItem';
 export { EmptyState } from './EmptyState';
 export { ErrorMessage, getErrorMessage } from './ErrorMessage';
+export { AccountCreated } from './AccountCreated';
