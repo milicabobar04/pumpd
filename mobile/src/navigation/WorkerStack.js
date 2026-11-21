@@ -3,6 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AppHeader } from '../components';
 import MenuScreen from '../screens/common/MenuScreen';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
+import MembersScreen from '../screens/worker/MembersScreen';
+import MemberDetailsScreen from '../screens/worker/MemberDetailsScreen';
+import AddMemberScreen from '../screens/worker/AddMemberScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,12 +28,9 @@ export default function WorkerStack() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="WorkerHome" component={WorkerHomeScreen} options={{ title: 'Početna' }} />
-      <Stack.Screen
-        name="WorkerMembers"
-        component={PlaceholderScreen}
-        options={{ title: 'Pregled svih članova' }}
-        initialParams={{ opis: 'Lista članova sa pretragom, detalji, dodavanje i brisanje', rute: '11.1–11.4', faza: 2 }}
-      />
+      <Stack.Screen name="WorkerMembers" component={MembersScreen} options={{ title: 'Pregled svih članova' }} />
+      <Stack.Screen name="WorkerMemberDetails" component={MemberDetailsScreen} options={{ title: 'Detalji člana' }} />
+      <Stack.Screen name="WorkerAddMember" component={AddMemberScreen} options={{ title: 'Dodavanje člana' }} />
       <Stack.Screen
         name="WorkerMembership"
         component={PlaceholderScreen}

@@ -25,7 +25,7 @@ export const AccountCreated = ({ title, fullName, email, temporaryPassword, onDo
     </View>
 
     <Text style={styles.hint} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-      Saopštite lozinku korisniku. Pri prvoj prijavi moraće je promijeniti. Lozinka se više neće prikazati.
+      Odštampajte lozinku ili je saopštite korisniku. Pri prvoj prijavi postaviće svoju lozinku. Ova lozinka se više neće prikazati.
     </Text>
 
     <Button title="Gotovo" variant="action" onPress={onDone} />
