@@ -593,6 +593,62 @@ paths:
                     date: { type: string, format: date-time }
                     isSeen: { type: boolean }
 
+  /notifications/read-all:
+    patch:
+      summary: Označavanje svih obavještenja kao pročitanih
+      description: >
+        Sva obavještenja prijavljenog korisnika postaju pročitana (isSeen: true). Ako nema
+        nepročitanih, odgovor je i dalje 200. Tijelo zahtjeva je prazno.
+      tags: [ Obavještenja ]
+      responses:
+        '200':
+          description: Obavještenja označena kao pročitana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/{notificationId}/read:
+    patch:
+      summary: Označavanje jednog obavještenja kao pročitanog
+      description: >
+        Jedno obavještenje prijavljenog korisnika postaje pročitano. Već pročitano nije greška.
+        Tijelo zahtjeva je prazno.
+      tags: [ Obavještenja ]
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Obavještenje označeno kao pročitano
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+        '400':
+          description: notificationId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Obavještenje ne postoji ili pripada drugom korisniku
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   # ==========================================
   # 7. Treneri, praćenje i recenzije
   # ==========================================
