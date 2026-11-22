@@ -4,6 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
 import ProfileScreen from '../screens/common/ProfileScreen';
 import { tabScreenOptions, tabIcon } from './tabOptions';
+import { TrainerPlansStack } from './PlansStack';
+
 
 const Tab = createBottomTabNavigator();
 
@@ -18,12 +20,12 @@ export default function TrainerTabs() {
       />
       <Tab.Screen
         name="TrainerPlans"
-        component={PlaceholderScreen}
+        component={TrainerPlansStack}
         options={{
           title: 'Planovi treninga',
+          headerShown: false,
           tabBarIcon: tabIcon('dumbbell', 'dumbbell', MaterialCommunityIcons),
         }}
-        initialParams={{ opis: 'Planovi treninga', rute: '3.1–3.5', faza: 3 }}
       />
       <Tab.Screen
         name="TrainerSchedule"

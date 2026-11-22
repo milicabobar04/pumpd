@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PlaceholderScreen from '../screens/common/PlaceholderScreen';
 import ProfileScreen from '../screens/common/ProfileScreen';
 import { tabScreenOptions, tabIcon } from './tabOptions';
+import { MemberTrainingsStack } from './PlansStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,12 +20,12 @@ export default function MemberTabs() {
       />
       <Tab.Screen
         name="MemberTrainings"
-        component={PlaceholderScreen}
+        component={MemberTrainingsStack}
         options={{
           title: 'Treninzi',
+          headerShown: false,
           tabBarIcon: tabIcon('dumbbell', 'dumbbell', MaterialCommunityIcons),
         }}
-        initialParams={{ opis: 'Planovi treninga, grupni termini i istorija', rute: '3.1–3.5, 9.1–9.3, 2.4', faza: '3–4' }}
       />
       <Tab.Screen
         name="MemberTrainers"
@@ -37,6 +38,7 @@ export default function MemberTabs() {
         component={ProfileScreen}
         options={{ title: 'Profil', tabBarIcon: tabIcon('person-outline', 'person') }}
       />
+      
     </Tab.Navigator>
   );
 }
