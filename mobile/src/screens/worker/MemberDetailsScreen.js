@@ -3,15 +3,11 @@ import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-nat
 import { Button, ConfirmDialog, EmptyState, ErrorMessage } from '../../components';
 import { theme } from '../../theme';
 import { getMember, deleteMember } from '../../services/membersService';
+import { formatDate } from '../../utils/date';
 
 const { colors, spacing, borderRadius, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
 
-const formatDate = (value) => {
-  if (!value) return '–';
-  const [y, m, d] = String(value).split('-');
-  return d ? `${d}.${m}.${y}.` : String(value);
-};
 const orDash = (value, unit = '') => (value === null || value === undefined ? '–' : `${value}${unit}`);
 
 const InfoRow = ({ label, value }) => (
@@ -119,6 +115,13 @@ export default function MemberDetailsScreen({ navigation, route }) {
         </View>
 
         <ErrorMessage error={deleteError} inline />
+
+        <Button
+          title="Članarina"
+          variant="action"
+          onPress={() => navigation.navigate('WorkerMemberMembership', { memberId, memberName: fullName })}
+          style={styles.deleteButton}
+        />
 
         <Button
           title="Ukloni člana"

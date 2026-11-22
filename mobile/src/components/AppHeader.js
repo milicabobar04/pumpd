@@ -43,9 +43,11 @@ const LogoutIcon = ({ onPress }) => (
 );
 
 // Zajednički header iz Figme.
-//   Član, trener:      [nazad] [odjava] — logo — [zvonce] [zupčanik]
-//   Radnik, admin:     [nazad]          — logo — [odjava] [zupčanik]
-// Odjava ide lijevo kad desno ima zvonce, inače desno (kao u Figmi).
+//   Član:              [nazad] [zvonce] [QR] — logo — [zupčanik] [odjava]
+//   Trener:            [nazad] [zvonce]      — logo — [zupčanik] [odjava]
+//   Radnik, admin:     [nazad]               — logo — [zupčanik] [odjava]
+//   Promjena lozinke:                        — logo —            [odjava]
+// Navigacija i prečice su lijevo, nalog (podešavanja, odjava) uvijek desno.
 //
 // navigation: dobija se od React Navigation (header: ({ navigation }) => ...)
 // showBack:   strelica nazad, samo kad ima kuda nazad (ne na početnom ekranu uloge)
@@ -58,6 +60,8 @@ export const AppHeader = ({ navigation, showBack = false, minimal = false }) => 
   const [loggingOut, setLoggingOut] = useState(false);
 
   const withBell = !minimal && hasNotifications(role);
+  // Član na svakom ekranu ima prečicu do svog QR koda (ekran "Moja članarina", 2.3)
+  const withQr = !minimal && role === 'MEMBER';
   const logout = <LogoutIcon onPress={() => setLogoutOpen(true)} />;
 
   // SU-04: POST /auth/logout (1.2), pa brisanje sesije sa uređaja.
@@ -75,21 +79,25 @@ export const AppHeader = ({ navigation, showBack = false, minimal = false }) => 
         {showBack ? (
           <HeaderIcon name="arrow-back" label="Nazad" onPress={() => navigation.goBack()} />
         ) : null}
-         {withBell || minimal ? logout : null}
-      </View>
-
-      <Logo height={36} />
-
-      <View style={[styles.side, styles.right]}>
         {withBell ? (
           <HeaderIcon
             name="notifications-outline"
             label="Obavještenja"
             onPress={() => navigation.navigate('Notifications')}
           />
-        ) : minimal ? null : (
-          logout
-        )}
+        ) : null}
+        {withQr ? (
+          <HeaderIcon
+            name="qr-code-outline"
+            label="Moj QR kod"
+            onPress={() => navigation.navigate('MyMembership')}
+          />
+        ) : null}
+      </View>
+
+      <Logo height={36} />
+
+      <View style={[styles.side, styles.right]}>
         {minimal ? null : (
           <HeaderIcon
             name="settings-outline"
@@ -97,6 +105,7 @@ export const AppHeader = ({ navigation, showBack = false, minimal = false }) => 
             onPress={() => navigation.navigate('Settings')}
           />
         )}
+        {logout}
       </View>
 
       <ConfirmDialog

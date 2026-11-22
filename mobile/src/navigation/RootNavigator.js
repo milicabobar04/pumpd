@@ -12,6 +12,8 @@ import MemberTabs from './MemberTabs';
 import TrainerTabs from './TrainerTabs';
 import WorkerStack from './WorkerStack';
 import AdminStack from './AdminStack';
+import MyMembershipScreen from '../screens/member/MyMembershipScreen';
+import GymOccupancyScreen from '../screens/member/GymOccupancyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -87,6 +89,14 @@ export default function RootNavigator() {
                 options={{ title: 'Obavještenja' }}
               />
             ) : null}
+
+            {role === 'MEMBER' ? (
+              <>
+                <Stack.Screen name="MyMembership" component={MyMembershipScreen} options={{ title: 'Moja članarina' }} />
+                <Stack.Screen name="GymOccupancy" component={GymOccupancyScreen} options={{ title: 'Zauzetost teretane' }} />
+              </>
+            ) : null}
+
             <Stack.Screen
               name="Settings"
               component={SettingsScreen}

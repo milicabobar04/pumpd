@@ -13,7 +13,8 @@
     "plugins": [
       "expo-font",
       "expo-status-bar",
-      "expo-secure-store"
+      "expo-secure-store",
+      ["expo-camera", { "cameraPermission": "Kamera se koristi za skeniranje QR koda člana pri ulasku i izlasku." }]
     ]
   }
 }

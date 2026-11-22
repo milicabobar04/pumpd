@@ -10,7 +10,7 @@ const { colors, spacing, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
 const SEARCH_DELAY_MS = 300;
 
-const AddLink = ({ title, onPress }) => (
+const AddLink = ({ title, icon = 'add', onPress }) => (
   <Pressable
     onPress={onPress}
     hitSlop={12}
@@ -19,11 +19,12 @@ const AddLink = ({ title, onPress }) => (
     accessibilityLabel={title}
   >
     <Text style={styles.addLinkText} maxFontSizeMultiplier={MAX_FONT_SCALE}>{title}</Text>
-    <Ionicons name="add" size={24} color={colors.primary} />
+    <Ionicons name={icon} size={24} color={colors.primary} />
   </Pressable>
 );
 
-export default function MembersScreen({ navigation }) {
+export default function MembersScreen({ navigation, route }) {
+  const membershipMode = route.params?.mode === 'membership';
   const [members, setMembers] = useState(null); 
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,11 @@ export default function MembersScreen({ navigation }) {
 
   const header = (
     <View style={styles.header}>
-        <AddLink title="Kreiraj novog člana" onPress={() => navigation.navigate('WorkerAddMember')} />
+        {membershipMode ? (
+          <AddLink title="Skeniraj QR kod" icon="qr-code-outline" onPress={() => navigation.navigate('WorkerScanQr')} />
+        ) : (
+          <AddLink title="Kreiraj novog člana" onPress={() => navigation.navigate('WorkerAddMember')} />
+        )}
         <FormField
         label="Pretraga"
         placeholder="Ime, prezime ili email"
@@ -116,7 +121,14 @@ export default function MembersScreen({ navigation }) {
                 variant="person"
                 icon="person-outline"
                 title={`${item.name} ${item.surname}`}
-                onPress={() => navigation.navigate('WorkerMemberDetails', { memberId: item.memberId })}
+                onPress={() =>
+                  membershipMode
+                    ? navigation.navigate('WorkerMemberMembership', {
+                        memberId: item.memberId,
+                        memberName: `${item.name} ${item.surname}`,
+                      })
+                    : navigation.navigate('WorkerMemberDetails', { memberId: item.memberId })
+                }
             />
         )}
         ListHeaderComponent={header}

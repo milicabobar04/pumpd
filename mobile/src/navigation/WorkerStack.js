@@ -6,6 +6,8 @@ import PlaceholderScreen from '../screens/common/PlaceholderScreen';
 import MembersScreen from '../screens/worker/MembersScreen';
 import MemberDetailsScreen from '../screens/worker/MemberDetailsScreen';
 import AddMemberScreen from '../screens/worker/AddMemberScreen';
+import MemberMembershipScreen from '../screens/worker/MemberMembershipScreen';
+import ScanQrScreen from '../screens/worker/ScanQrScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,10 +35,12 @@ export default function WorkerStack() {
       <Stack.Screen name="WorkerAddMember" component={AddMemberScreen} options={{ title: 'Dodavanje člana' }} />
       <Stack.Screen
         name="WorkerMembership"
-        component={PlaceholderScreen}
+        component={MembersScreen}
         options={{ title: 'Pregled članarine' }}
-        initialParams={{ opis: 'Status, uređivanje i produženje članarine', rute: '11.5–11.7', faza: 3 }}
+        initialParams={{ mode: 'membership' }}
       />
+      <Stack.Screen name="WorkerMemberMembership" component={MemberMembershipScreen} options={{ title: 'Članarina' }} />
+      <Stack.Screen name="WorkerScanQr" component={ScanQrScreen} options={{ title: 'Skeniranje QR koda' }} />
       <Stack.Screen
         name="WorkerGroups"
         component={PlaceholderScreen}

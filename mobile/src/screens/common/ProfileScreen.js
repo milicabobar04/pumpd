@@ -317,6 +317,13 @@ export default function ProfileScreen({ navigation }) {
           <Button title="Uredi profil" variant="action" onPress={() => setEditing(true)} />
         )}
 
+        {profile.role === 'MEMBER' ? (
+          <>
+            <Button title="Moja članarina" variant="action" onPress={() => navigation.navigate('MyMembership')} />
+            <Button title="Zauzetost teretane" variant="action" onPress={() => navigation.navigate('GymOccupancy')} />
+          </>
+        ) : null}
+
         <Button
           title="Prijavi problem"
           variant="action"
