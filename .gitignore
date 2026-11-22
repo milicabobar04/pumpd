@@ -10,3 +10,5 @@ yarn-debug.log*
 .idea/workspace.xml
 # Lokalne env varijable (sablon je mobile/.env.example)
 mobile/.env
+# Slike objava koje backend čuva lokalno (pumpd.slike.folder)
+backend/uploads/

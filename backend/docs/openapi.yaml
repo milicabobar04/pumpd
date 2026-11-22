@@ -15,6 +15,8 @@ info:
     - Seed nalozi (admin@, radnik@, trener1-3@, clan1-5@pumpd.local) imaju lozinku pumpd123.
     - Nalog koji pravi radnik ili administrator dobija privremenu lozinku od servera (temporaryPassword);
       prijava i profil vraćaju mustChangePassword: true dok je korisnik ne promijeni (PUT /users/my-password).
+    - Slike objava: trener prvo pošalje sliku (POST /posts/images), pa njen imageUrl stavi u POST /posts.
+      Slike su javne (GET /images/{imageName}).
 
 servers:
   - url: http://localhost:8080/api 
@@ -822,21 +824,32 @@ paths:
   # ==========================================
   /posts/feed:
     get:
-      summary: Pregled personalizovane stranice (SU-16) 
+      summary: Pregled personalizovane stranice (SU-16)
+      description: >
+        Objave aktivnih trenera koje član prati (samo prihvaćeno praćenje; zahtjev koji čeka ili je
+        odbijen ne daje objave), od najnovije. isSaved pokazuje da li je prijavljeni član objavu sačuvao.
+        Bez paginacije.
       tags: [ Objave ]
       responses:
         '200':
-          description: Feed objava
+          description: Feed objava (prazan niz ako nema objava)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /posts/{postId}/save:
     post:
-      summary: Čuvanje objave (SU-17) 
+      summary: Čuvanje objave (SU-17)
+      description: >
+        Član može sačuvati objavu bilo kog aktivnog trenera (praćenje nije uslov).
+        Tijelo zahtjeva je prazno.
       tags: [ Objave ]
       parameters:
         - name: postId
@@ -853,12 +866,33 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '400':
+          description: postId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Objava ne postoji ili je njen trener obrisan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          $ref: '#/components/responses/Error'
+          description: Objava je već sačuvana (i kod istovremenog dvostrukog klika)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
-      summary: Brisanje sačuvane objave (SU-28) 
+      summary: Brisanje sačuvane objave (SU-28)
+      description: >
+        Uklanja objavu iz sačuvanih. Radi i ako je trener u međuvremenu obrisan
+        (npr. kad aplikacija još prikazuje staru listu).
       tags: [ Objave ]
       parameters:
         - name: postId
@@ -875,30 +909,53 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '400':
+          description: postId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Objava nije u sačuvanim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /posts/saved:
     get:
-      summary: Pregled sačuvanih objava (SU-27) 
+      summary: Pregled sačuvanih objava (SU-27)
+      description: >
+        Sačuvane objave člana, od zadnje sačuvane (datum čuvanja je bez vremena, pa se za isti dan
+        redaju po vremenu objave). isSaved je uvijek true. Objava ostaje i nakon prekida praćenja,
+        a ne prikazuju se objave obrisanih trenera ni objave koje je trener obrisao.
       tags: [ Objave ]
       responses:
         '200':
-          description: Lista sačuvanih objava
+          description: Lista sačuvanih objava (prazan niz ako nema)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Post'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /posts/my-posts:
     get:
-      summary: Pregled sopstvenih objava (SU-29) 
+      summary: Pregled sopstvenih objava (SU-29)
+      description: Objave prijavljenog trenera, od najnovije.
       tags: [ Objave ]
       responses:
         '200':
-          description: Objave trenera
+          description: Objave trenera (prazan niz ako nema)
           content:
             application/json:
               schema:
@@ -909,11 +966,18 @@ paths:
                     postId: { type: integer }
                     content: { type: string }
                     imageUrl: { type: string, nullable: true }
-                    postTimestamp: { type: string, format: date-time }
+                    postTimestamp: { type: string, format: date-time, example: '2026-11-22T10:30:15' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /posts:
     post:
-      summary: Dodavanje objave (SU-30) 
+      summary: Dodavanje objave (SU-30)
+      description: >
+        Vrijeme objave postavlja server (na sekunde). imageUrl je opcion; ako je poslat, mora biti
+        adresa koju je vratio POST /posts/images (slika mora postojati). Vanjski linkovi se ne primaju.
       tags: [ Objave ]
       requestBody:
         required: true
@@ -921,9 +985,10 @@ paths:
           application/json:
             schema:
               type: object
+              required: [content]
               properties:
-                content: { type: string }
-                imageUrl: { type: string, nullable: true }
+                content: { type: string, minLength: 1, maxLength: 500 }
+                imageUrl: { type: string, nullable: true, maxLength: 255, example: '/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
       responses:
         '201':
           description: Objava dodata
@@ -935,11 +1000,63 @@ paths:
                   postId: { type: integer }
                   message: { type: string }
         '400':
-          $ref: '#/components/responses/Error'
+          description: Prazan sadržaj, sadržaj duži od 500 znakova, ili slika koja nije poslata preko /posts/images
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /posts/images:
+    post:
+      summary: Slanje slike za objavu
+      description: >
+        Samo trener. Slika se šalje kao multipart/form-data u polju "image". Dozvoljeni su JPEG, PNG i WebP
+        (format se provjerava po sadržaju fajla, ne po imenu), najviše 5 MB. Server sliku čuva pod
+        nasumičnim imenom i vraća imageUrl, koji se zatim šalje u POST /posts. imageUrl je adresa
+        od korijena servera (počinje sa /api/images/), pa joj aplikacija dodaje adresu servera.
+        Aplikacija treba provjeriti veličinu prije slanja (ili smanjiti kvalitet slike): za fajlove
+        veće od oko 16 MB server zatvara vezu, pa klijent ne dobije odgovor 400.
+      tags: [ Objave ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Slika sačuvana
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imageUrl: { type: string, example: '/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
+        '400':
+          description: Nema polja image, zahtjev nije multipart, slika je prazna, nije JPEG/PNG/WebP ili je veća od 5 MB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /posts/{postId}:
     delete:
-      summary: Brisanje sopstvene objave (SU-31) 
+      summary: Brisanje sopstvene objave (SU-31)
+      description: >
+        Trajno brisanje: briše se i iz sačuvanih objava svih članova, a fajl slike se briše sa servera.
       tags: [ Objave ]
       parameters:
         - name: postId
@@ -956,10 +1073,62 @@ paths:
                 type: object
                 properties:
                   message: { type: string }
+        '400':
+          description: postId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token nedostaje, nije validan ili pripada obrisanom nalogu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
-          $ref: '#/components/responses/Error'
+          description: Korisnik nije trener ili objava pripada drugom treneru
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
-          $ref: '#/components/responses/Error'
+          description: Objava ne postoji
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /images/{imageName}:
+    get:
+      summary: Slika objave
+      description: >
+        Javno (bez tokena): ime je nasumično (UUID) i do njega se dolazi samo preko zaštićenih ruta.
+        Odgovor se smije keširati godinu dana, jer se sadržaj pod istim imenom ne mijenja.
+      security: []
+      tags: [ Objave ]
+      parameters:
+        - name: imageName
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg
+      responses:
+        '200':
+          description: Sadržaj slike
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+        '404':
+          description: Slika ne postoji ili ime nije ispravno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==========================================
   # 9. Grupni treninzi – pregled i prijava
@@ -2174,7 +2343,7 @@ components:
         comment: { type: string, nullable: true }
         date: { type: string, format: date }
 
-    # Reusable schema: Objave (8.1, 8.3)
+    # Reusable schema: Objave (8.1, 8.3); trainerName = "Ime Prezime"
     Post:
       type: object
       properties:
@@ -2183,8 +2352,10 @@ components:
         trainerName: { type: string }
         content: { type: string }
         imageUrl: { type: string, nullable: true }
-        postTimestamp: { type: string, format: date-time }
-        isSaved: { type: boolean } 
+        postTimestamp: { type: string, format: date-time, example: '2026-11-22T10:30:15' }
+        isSaved:
+          type: boolean
+          description: Da li je prijavljeni član sačuvao objavu (u /posts/saved uvijek true)
 
   responses:
     Error:
