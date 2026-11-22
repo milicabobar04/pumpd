@@ -1044,7 +1044,7 @@ paths:
               required: [content]
               properties:
                 content: { type: string, minLength: 1, maxLength: 500 }
-                imageUrl: { type: string, nullable: true, maxLength: 255, example: '/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
+                imageUrl: { type: string, nullable: true, maxLength: 255, example: '/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
       responses:
         '201':
           description: Objava dodata
@@ -1072,8 +1072,9 @@ paths:
       description: >
         Samo trener. Slika se šalje kao multipart/form-data u polju "image". Dozvoljeni su JPEG, PNG i WebP
         (format se provjerava po sadržaju fajla, ne po imenu), najviše 5 MB. Server sliku čuva pod
-        nasumičnim imenom i vraća imageUrl, koji se zatim šalje u POST /posts. imageUrl je adresa
-        od korijena servera (počinje sa /api/images/), pa joj aplikacija dodaje adresu servera.
+        nasumičnim imenom i vraća imageUrl, koji se zatim šalje u POST /posts. imageUrl je, kao i sve
+        ostale putanje, relativan u odnosu na adresu API-ja (/images/...): aplikacija ga spaja sa
+        baznom adresom API-ja, isto kao svaku rutu.
         Aplikacija treba provjeriti veličinu prije slanja (ili smanjiti kvalitet slike): za fajlove
         veće od oko 16 MB server zatvara vezu, pa klijent ne dobije odgovor 400.
       tags: [ Objave ]
@@ -1096,7 +1097,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  imageUrl: { type: string, example: '/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
+                  imageUrl: { type: string, example: '/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg' }
         '400':
           description: Nema polja image, zahtjev nije multipart, slika je prazna, nije JPEG/PNG/WebP ili je veća od 5 MB
           content:

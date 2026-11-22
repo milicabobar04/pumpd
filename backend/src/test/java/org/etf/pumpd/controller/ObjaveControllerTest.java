@@ -58,7 +58,7 @@ import org.springframework.web.server.ResponseStatusException;
 class ObjaveControllerTest {
 
     private static final String RUTA = "/api/posts";
-    private static final String SLIKA = "/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg";
+    private static final String SLIKA = "/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg";
 
     @Autowired
     private MockMvc mockMvc;
@@ -173,7 +173,7 @@ class ObjaveControllerTest {
 
     @Test
     void predugaAdresaSlikeVraca400() throws Exception {
-        dodaj("{\"content\":\"x\",\"imageUrl\":\"/api/images/" + "a".repeat(250) + "\"}", Uloga.TRAINER)
+        dodaj("{\"content\":\"x\",\"imageUrl\":\"/images/" + "a".repeat(250) + "\"}", Uloga.TRAINER)
                 .andExpect(status().isBadRequest());
     }
 

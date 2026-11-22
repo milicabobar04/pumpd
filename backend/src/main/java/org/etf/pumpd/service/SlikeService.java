@@ -21,14 +21,16 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Slike objava na disku servera (folder pumpd.slike.folder). Adresa slike je /api/images/<ime>,
+ * Slike objava na disku servera (folder pumpd.slike.folder). Adresa slike (imageUrl) je /images/<ime>,
+ * relativna u odnosu na adresu API-ja kao sve ostale putanje (aplikacija je spaja sa baznom adresom
+ * API-ja, npr. http://IP:8080/api + /images/x.jpg), a čita se preko GET /api/images/{ime}.
  * a ime je uvijek UUID sa nastavkom jpg, png ili webp koje je napravio server. Sve ostalo se odbija,
  * pa se preko adrese ne može doći do fajla van foldera (npr. "../").
  */
 @Service
 public class SlikeService {
 
-	public static final String PREFIKS = "/api/images/";
+	public static final String PREFIKS = "/images/";
 
 	private static final Logger log = LoggerFactory.getLogger(SlikeService.class);
 	private static final Pattern IME = Pattern.compile(
@@ -89,7 +91,7 @@ public class SlikeService {
 
 	/**
 	 * Slanje slike (POST /api/posts/images): provjera stvarnog formata, upis pod nasumičnim imenom
-	 * (UUID + nastavak prema formatu) i vraćanje adrese /api/images/<ime>. Ime koje je poslao klijent
+	 * (UUID + nastavak prema formatu) i vraćanje adrese /images/<ime>. Ime koje je poslao klijent
 	 * se ne koristi. Veličinu (5 MB) provjerava Spring prije nego što zahtjev stigne ovdje.
 	 */
 	public String sacuvaj(MultipartFile slika) {

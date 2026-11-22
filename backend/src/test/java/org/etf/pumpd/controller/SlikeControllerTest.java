@@ -79,7 +79,7 @@ class SlikeControllerTest {
                     .thenReturn(Optional.of(new JwtPodaci(idNalog, "jti-" + uloga.name(), Instant.MAX)));
             when(korisnikService.odrediUlogu(idNalog)).thenReturn(Optional.of(uloga));
         }
-        when(slikeService.sacuvaj(any())).thenReturn("/api/images/" + IME);
+        when(slikeService.sacuvaj(any())).thenReturn("/images/" + IME);
     }
 
     private ResultActions posalji(MockMultipartFile fajl, Uloga uloga) throws Exception {
@@ -115,7 +115,7 @@ class SlikeControllerTest {
     void slanjeVraca201SaAdresomSlike() throws Exception {
         posalji(slika(), Uloga.TRAINER)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.imageUrl").value("/api/images/" + IME));
+                .andExpect(jsonPath("$.imageUrl").value("/images/" + IME));
 
         verify(slikeService).sacuvaj(any());
     }
