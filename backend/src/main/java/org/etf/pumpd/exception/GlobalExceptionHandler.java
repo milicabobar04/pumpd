@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /**
 * Globalni presretač izuzetaka u REST kontrolerima.
@@ -136,5 +139,32 @@ public class GlobalExceptionHandler {
                 ex.getMessage()
         );
         return new ResponseEntity<>(greska, HttpStatus.UNAUTHORIZED);
+    }
+
+    // 9. Slanje slike (POST /api/posts/images) - 400 Bad Request
+    // Prevelik fajl Spring inače vraća kao 413, a ugovor koristi samo 400–409.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<GreskaOdgovor> obradiPrevelikuSliku(MaxUploadSizeExceededException ex) {
+        return losZahtjev("Slika moze imati najvise 5 MB.");
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<GreskaOdgovor> obradiSlikuKojaNedostaje(MissingServletRequestPartException ex) {
+        return losZahtjev("Slika je obavezna (polje image).");
+    }
+
+    // Zahtjev koji nije multipart/form-data inače završava kao 500.
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<GreskaOdgovor> obradiNeispravanMultipart(MultipartException ex) {
+        return losZahtjev("Zahtjev mora biti multipart/form-data sa slikom u polju image.");
+    }
+
+    private ResponseEntity<GreskaOdgovor> losZahtjev(String poruka) {
+        GreskaOdgovor greska = new GreskaOdgovor(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                poruka
+        );
+        return new ResponseEntity<>(greska, HttpStatus.BAD_REQUEST);
     }
 }

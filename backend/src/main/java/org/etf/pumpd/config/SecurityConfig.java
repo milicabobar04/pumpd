@@ -55,6 +55,15 @@ public class SecurityConfig {
 				.requestMatchers("/api/trainer/**").hasRole("TRAINER")
 				.requestMatchers("/api/membership/**").hasRole("MEMBER")
 				.requestMatchers("/api/training-plans/**").hasAnyRole("MEMBER", "TRAINER")
+				// objave (8.x): uloge su pomiješane, pa pravila idu po metodi i tačnoj putanji;
+				// pravilo za /save mora biti iznad pravila za brisanje objave
+				.requestMatchers(HttpMethod.POST, "/api/posts/images").hasRole("TRAINER")
+				.requestMatchers(HttpMethod.GET, "/api/images/*").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/posts/feed", "/api/posts/saved").hasRole("MEMBER")
+				.requestMatchers("/api/posts/*/save").hasRole("MEMBER")
+				.requestMatchers(HttpMethod.GET, "/api/posts/my-posts").hasRole("TRAINER")
+				.requestMatchers(HttpMethod.POST, "/api/posts").hasRole("TRAINER")
+				.requestMatchers(HttpMethod.DELETE, "/api/posts/*").hasRole("TRAINER")
 				.anyRequest().authenticated());
 
 		return http.build();
