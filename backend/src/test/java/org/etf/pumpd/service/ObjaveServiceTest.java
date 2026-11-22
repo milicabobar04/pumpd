@@ -55,7 +55,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 class ObjaveServiceTest {
 
     private static final int TRENER_ID = 3;
-    private static final String SLIKA = "/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg";
+    private static final String SLIKA = "/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg";
 
     private ObjavaRepository objavaRepository;
     private SacuvanaObjavaRepository sacuvanaObjavaRepository;

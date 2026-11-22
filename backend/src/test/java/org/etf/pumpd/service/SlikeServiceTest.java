@@ -52,20 +52,21 @@ class SlikeServiceTest {
 
     @Test
     void ispravnaAdresaDajePutanjuUFolderu() {
-        assertEquals(folder.toAbsolutePath().resolve(IME), servis.putanja("/api/images/" + IME).orElseThrow());
+        assertEquals(folder.toAbsolutePath().resolve(IME), servis.putanja("/images/" + IME).orElseThrow());
     }
 
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {
             "https://nekisajt.com/" + IME,             // vanjski link
-            "/api/images/../application.properties",   // izlazak iz foldera
-            "/api/images/../../etc/passwd",
-            "/api/images/slika.jpg",                    // ime koje nije UUID
-            "/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.gif",   // nedozvoljen nastavak
-            "/api/images/7F3C9A2E-41B8-4D2A-9C11-5E8A0B6D2F44.jpg",   // server pravi samo mala slova
-            "/api/images/" + IME + "/x",
-            "api/images/" + IME,
+            "/images/../application.properties",   // izlazak iz foldera
+            "/images/../../etc/passwd",
+            "/images/slika.jpg",                    // ime koje nije UUID
+            "/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.gif",   // nedozvoljen nastavak
+            "/images/7F3C9A2E-41B8-4D2A-9C11-5E8A0B6D2F44.jpg",   // server pravi samo mala slova
+            "/images/" + IME + "/x",
+            "/api/images/" + IME,                       // stari oblik (od korijena servera) više ne važi
+            "images/" + IME,                         // bez / na početku
             ""})
     void neispravnaAdresaNemaPutanju(String adresa) {
         assertTrue(servis.putanja(adresa).isEmpty(), String.valueOf(adresa));
@@ -73,11 +74,11 @@ class SlikeServiceTest {
 
     @Test
     void postojiSamoAkoFajlPostojiNaDisku() throws IOException {
-        assertFalse(servis.postoji("/api/images/" + IME));
+        assertFalse(servis.postoji("/images/" + IME));
 
         napraviSliku(IME);
 
-        assertTrue(servis.postoji("/api/images/" + IME));
+        assertTrue(servis.postoji("/images/" + IME));
         assertFalse(servis.postoji("https://nekisajt.com/" + IME));
     }
 
@@ -87,7 +88,7 @@ class SlikeServiceTest {
     void vanTransakcijeBriseOdmah() throws IOException {
         Path fajl = napraviSliku(IME);
 
-        servis.obrisiPoslijeCommita("/api/images/" + IME);
+        servis.obrisiPoslijeCommita("/images/" + IME);
 
         assertFalse(Files.exists(fajl));
     }
@@ -97,7 +98,7 @@ class SlikeServiceTest {
         Path fajl = napraviSliku(IME);
         TransactionSynchronizationManager.initSynchronization();
 
-        servis.obrisiPoslijeCommita("/api/images/" + IME);
+        servis.obrisiPoslijeCommita("/images/" + IME);
         assertTrue(Files.exists(fajl), "prije commita slika još postoji");
 
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
@@ -109,7 +110,7 @@ class SlikeServiceTest {
         Path fajl = napraviSliku(IME);
         TransactionSynchronizationManager.initSynchronization();
 
-        servis.obrisiPoslijeCommita("/api/images/" + IME);
+        servis.obrisiPoslijeCommita("/images/" + IME);
         TransactionSynchronizationManager.getSynchronizations()
                 .forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
 
@@ -118,8 +119,8 @@ class SlikeServiceTest {
 
     @Test
     void brisanjeNepostojeceIliNeispravneSlikeNijeGreska() {
-        servis.obrisiPoslijeCommita("/api/images/" + IME);
-        servis.obrisiPoslijeCommita("/api/images/../nesto");
+        servis.obrisiPoslijeCommita("/images/" + IME);
+        servis.obrisiPoslijeCommita("/images/../nesto");
         servis.obrisiPoslijeCommita(null);
     }
 
@@ -146,7 +147,7 @@ class SlikeServiceTest {
         // ime i Content-Type od klijenta su namjerno pogrešni: server ih ne koristi
         String adresa = servis.sacuvaj(fajl("../../moja slika.gif", "text/plain", bajtovi));
 
-        assertTrue(adresa.matches("/api/images/[0-9a-f-]{36}\\." + nastavak), adresa);
+        assertTrue(adresa.matches("/images/[0-9a-f-]{36}\\." + nastavak), adresa);
         Path sacuvan = servis.putanja(adresa).orElseThrow();
         assertEquals(folder.toAbsolutePath(), sacuvan.getParent());
         assertArrayEquals(bajtovi, Files.readAllBytes(sacuvan));

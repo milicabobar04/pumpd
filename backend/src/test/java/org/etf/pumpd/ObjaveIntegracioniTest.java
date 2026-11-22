@@ -180,7 +180,7 @@ class ObjaveIntegracioniTest {
     }
 
     private Path fajlSlike(String imageUrl) {
-        return FOLDER_SLIKA.resolve(imageUrl.substring("/api/images/".length()));
+        return FOLDER_SLIKA.resolve(imageUrl.substring("/images/".length()));
     }
 
     private int brojSacuvanih(int idObjave) {
@@ -197,9 +197,10 @@ class ObjaveIntegracioniTest {
 
         // slika: upis na disk i javno čitanje
         String slika = posaljiSliku(trener);
-        assertTrue(slika.matches("/api/images/[0-9a-f-]{36}\\.jpg"), slika);
+        assertTrue(slika.matches("/images/[0-9a-f-]{36}\\.jpg"), slika);
         assertArrayEquals(JPEG, Files.readAllBytes(fajlSlike(slika)));
-        mockMvc.perform(get(slika))
+        // aplikacija spaja imageUrl sa adresom API-ja (EXPO_PUBLIC_API_URL = http://IP:8080/api)
+        mockMvc.perform(get("/api" + slika))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.IMAGE_JPEG))
                 .andExpect(content().bytes(JPEG));
@@ -245,7 +246,7 @@ class ObjaveIntegracioniTest {
         sacuvane(clan).andExpect(jsonPath("$").isEmpty());
         feed(clan).andExpect(jsonPath("$[*].postId", not(hasItem(id))));
         assertFalse(Files.exists(fajlSlike(slika)), "fajl slike je obrisan");
-        mockMvc.perform(get(slika)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api" + slika)).andExpect(status().isNotFound());
         zahtjev(post("/api/posts/" + id + "/save"), clan.token(), null).andExpect(status().isNotFound());
     }
 
@@ -346,7 +347,7 @@ class ObjaveIntegracioniTest {
         zahtjev(post("/api/posts"), trener.token(), "{\"content\":\"x\",\"imageUrl\":\"https://nekisajt.com/a.jpg\"}")
                 .andExpect(status().isBadRequest());
         zahtjev(post("/api/posts"), trener.token(),
-                "{\"content\":\"x\",\"imageUrl\":\"/api/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg\"}")
+                "{\"content\":\"x\",\"imageUrl\":\"/images/7f3c9a2e-41b8-4d2a-9c11-5e8a0b6d2f44.jpg\"}")
                 .andExpect(status().isBadRequest());
         zahtjev(post("/api/posts"), trener.token(), "{\"content\":\"   \"}").andExpect(status().isBadRequest());
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM objava WHERE trener_nalog_idnalog = ?",

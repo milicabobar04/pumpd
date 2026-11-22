@@ -77,12 +77,12 @@ class ObjaveEntitetiIntegracioniTest {
 
     @Test
     void objavaSeUpisujeICitaIzBaze() {
-        int id = upisiObjavu("Novi trening nogu!", "/api/images/abc.jpg");
+        int id = upisiObjavu("Novi trening nogu!", "/images/abc.jpg");
 
         Objava procitana = objavaRepository.findById(id).orElseThrow();
 
         assertEquals("Novi trening nogu!", procitana.getSadrzaj());
-        assertEquals("/api/images/abc.jpg", procitana.getSlikaPath());
+        assertEquals("/images/abc.jpg", procitana.getSlikaPath());
         assertEquals(VRIJEME, procitana.getVrijeme());
         assertEquals(idNaloga("trener1@pumpd.local"), procitana.getTrener().getNalog().getId());
     }
@@ -96,13 +96,13 @@ class ObjaveEntitetiIntegracioniTest {
 
     @Test
     void koloneObjaveUBazi() {
-        int id = upisiObjavu("Provjera kolona.", "/api/images/x.png");
+        int id = upisiObjavu("Provjera kolona.", "/images/x.png");
 
         Map<String, Object> red = jdbc.queryForMap(
                 "SELECT sadrzaj, vrijeme, slikaPath, trener_nalog_idnalog FROM objava WHERE idobjava = ?", id);
 
         assertEquals("Provjera kolona.", red.get("sadrzaj"));
-        assertEquals("/api/images/x.png", red.get("slikaPath"));
+        assertEquals("/images/x.png", red.get("slikaPath"));
         assertEquals(idNaloga("trener1@pumpd.local"), red.get("trener_nalog_idnalog"));
         assertNotNull(red.get("vrijeme"));
     }
