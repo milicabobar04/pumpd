@@ -16,9 +16,11 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.etf.pumpd.dto.ObavjestenjeDto;
 import org.etf.pumpd.entity.Nalog;
 import org.etf.pumpd.entity.Obavjestenje;
+import org.etf.pumpd.exception.ResursNijePronadjenException;
 import org.etf.pumpd.repository.NalogRepository;
 import org.etf.pumpd.repository.ObavjestenjeRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,6 +132,36 @@ class ObavjestenjeServiceTest {
         when(obavjestenjeRepository.findByPrimalacIdOrderByDatumVrijemeDescIdDesc(5)).thenReturn(List.of());
 
         assertTrue(servis.mojaObavjestenja(5).isEmpty());
+    }
+
+    @Test
+    void jednoNeprocitanoPostajeProcitano() {
+        Obavjestenje o = obavjestenje(7, "Novi zahtjev.", LocalDateTime.of(2026, 10, 28, 9, 0), false);
+        when(obavjestenjeRepository.findByIdAndPrimalacId(7, 5)).thenReturn(Optional.of(o));
+
+        servis.oznaciKaoProcitano(7, 5);
+
+        assertTrue(o.isProcitano());
+    }
+
+    @Test
+    void vecProcitanoNijeGreska() {
+        Obavjestenje o = obavjestenje(7, "Novi zahtjev.", LocalDateTime.of(2026, 10, 28, 9, 0), true);
+        when(obavjestenjeRepository.findByIdAndPrimalacId(7, 5)).thenReturn(Optional.of(o));
+
+        servis.oznaciKaoProcitano(7, 5);
+
+        assertTrue(o.isProcitano());
+    }
+
+    @Test
+    void tudjeIliNepostojeceObavjestenjeBaca404() {
+        // repozitorijum traži po id i primaocu, pa za tuđe obavještenje vraća prazno
+        when(obavjestenjeRepository.findByIdAndPrimalacId(7, 5)).thenReturn(Optional.empty());
+
+        ResursNijePronadjenException e =
+                assertThrows(ResursNijePronadjenException.class, () -> servis.oznaciKaoProcitano(7, 5));
+        assertEquals("Obavjestenje ne postoji.", e.getMessage());
     }
 
     @Test

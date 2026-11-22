@@ -1,6 +1,8 @@
 package org.etf.pumpd.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,5 +29,21 @@ public class ObavjestenjeController {
 	public List<ObavjestenjeDto> mojaObavjestenja()
 	{
 		return obavjestenjeService.mojaObavjestenja(trenutniKorisnik.obavezanId());
+	}
+
+	/** Označava sva obavještenja prijavljenog korisnika kao pročitana. Tijelo zahtjeva je prazno. */
+	@PatchMapping("/read-all")
+	public PorukaDto oznaciSveKaoProcitana()
+	{
+		obavjestenjeService.oznaciSveKaoProcitana(trenutniKorisnik.obavezanId());
+		return new PorukaDto("Obavjestenja su oznacena kao procitana.");
+	}
+
+	/** Označava jedno obavještenje prijavljenog korisnika kao pročitano. Tijelo zahtjeva je prazno. */
+	@PatchMapping("/{notificationId}/read")
+	public PorukaDto oznaciKaoProcitano(@PathVariable Integer notificationId)
+	{
+		obavjestenjeService.oznaciKaoProcitano(notificationId, trenutniKorisnik.obavezanId());
+		return new PorukaDto("Obavjestenje je oznaceno kao procitano.");
 	}
 }

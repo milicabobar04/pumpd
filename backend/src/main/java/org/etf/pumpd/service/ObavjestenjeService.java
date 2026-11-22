@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.etf.pumpd.entity.*;
 import org.etf.pumpd.repository.*;
 import org.etf.pumpd.dto.*;
+import org.etf.pumpd.exception.ResursNijePronadjenException;
 
 
 @Service
@@ -79,6 +80,19 @@ public class ObavjestenjeService {
 		
 	}
 	
+	/**
+	 * PATCH /api/notifications/{id}/read: jedno obavještenje prijavljenog korisnika postaje pročitano.
+	 * Već pročitano nije greška; tuđe ili nepostojeće daje 404 (ne otkriva se da tuđe postoji).
+	 */
+	@Transactional
+	public void oznaciKaoProcitano(Integer idObavjestenja, Integer korisnikId)
+	{
+		Obavjestenje obavjestenje = obavjestenjeRepository.findByIdAndPrimalacId(idObavjestenja, korisnikId)
+				.orElseThrow(() -> new ResursNijePronadjenException("Obavjestenje ne postoji."));
+		obavjestenje.setProcitano(true);
+	}
+
+	/** PATCH /api/notifications/read-all: sva nepročitana obavještenja korisnika, jednim upitom. */
 	@Transactional
 	public int oznaciSveKaoProcitana(Integer korisnikId)
 	{
