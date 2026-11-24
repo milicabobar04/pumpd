@@ -3,6 +3,7 @@ import {
   View,
   Text,
   FlatList,
+  Pressable,
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
@@ -10,7 +11,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { EmptyState, ErrorMessage } from '../../components';
 import { theme } from '../../theme';
-import { getNotifications } from '../../services/notificationsService';
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from '../../services/notificationsService';
 
 const { colors, fonts, spacing, borderRadius, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
@@ -37,14 +42,22 @@ const sortNewestFirst = (list) =>
     return tb - ta;
   });
 
-const NotificationItem = ({ item }) => {
+const NotificationItem = ({ item, onPress }) => {
   const unread = item.isSeen === false;
   const when = formatDateTime(item.date);
 
   return (
-    <View
-      style={[styles.item, unread ? styles.itemUnread : styles.itemRead]}
+    <Pressable
+      onPress={unread ? () => onPress(item) : undefined}
+      disabled={!unread}
+      style={({ pressed }) => [
+        styles.item,
+        unread ? styles.itemUnread : styles.itemRead,
+        pressed && styles.pressed,
+      ]}
       accessible
+      accessibilityRole={unread ? 'button' : undefined}
+      accessibilityHint={unread ? 'Označava obavještenje kao pročitano' : undefined}
       accessibilityLabel={`${unread ? 'Nepročitano. ' : ''}${item.content || ''}. ${when}`}
     >
       <View style={styles.itemRow}>
@@ -63,9 +76,27 @@ const NotificationItem = ({ item }) => {
           {when}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 };
+
+const MarkAllReadButton = ({ onPress }) => (
+  <Pressable
+    onPress={onPress}
+    hitSlop={12}
+    style={({ pressed }) => [styles.markAll, pressed && styles.pressed]}
+    accessibilityRole="button"
+    accessibilityLabel="Označi sve kao pročitano"
+  >
+    <Ionicons name="checkmark-done-outline" size={18} color={colors.primary} />
+    <Text style={styles.markAllText} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+      Označi sve kao pročitano
+    </Text>
+  </Pressable>
+);
+
+const setSeen = (list, predicate) =>
+  list.map((n) => (predicate(n) ? { ...n, isSeen: true } : n));
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState(null);
@@ -98,6 +129,33 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   };
 
+  // Optimistično ažuriranje: stavka odmah postaje pročitana; ako zahtjev padne, vraća se na nepročitano.
+  const markOneAsRead = async (item) => {
+    const id = item.notificationId;
+    setNotifications((prev) => setSeen(prev, (n) => n.notificationId === id));
+    try {
+      await markNotificationAsRead(id);
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (n.notificationId === id ? { ...n, isSeen: false } : n))
+      );
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unreadIds = new Set(
+      notifications.filter((n) => n.isSeen === false).map((n) => n.notificationId)
+    );
+    setNotifications((prev) => setSeen(prev, () => true));
+    try {
+      await markAllNotificationsAsRead();
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (unreadIds.has(n.notificationId) ? { ...n, isSeen: false } : n))
+      );
+    }
+  };
+
   if (loading && !notifications) {
     return (
       <View style={[styles.screen, styles.centered]}>
@@ -114,15 +172,22 @@ export default function NotificationsScreen() {
     );
   }
 
+  const hasUnread = notifications.some((n) => n.isSeen === false);
+
   return (
     <View style={styles.screen}>
       <FlatList
         data={notifications}
         keyExtractor={(item, index) => String(item.notificationId ?? index)}
-        renderItem={({ item }) => <NotificationItem item={item} />}
+        renderItem={({ item }) => <NotificationItem item={item} onPress={markOneAsRead} />}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          loadError ? <ErrorMessage error={loadError} inline style={styles.inlineError} /> : null
+          loadError || hasUnread ? (
+            <View style={styles.header}>
+              {loadError ? <ErrorMessage error={loadError} inline style={styles.inlineError} /> : null}
+              {hasUnread ? <MarkAllReadButton onPress={markAllAsRead} /> : null}
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           <EmptyState
@@ -161,6 +226,23 @@ const styles = StyleSheet.create({
   },
   inlineError: {
     marginBottom: spacing.px4,
+  },
+  header: {
+    gap: spacing.px8,
+  },
+  markAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: spacing.px4,
+  },
+  markAllText: {
+    ...typography.caption,
+    fontFamily: fonts.inter500,
+    color: colors.primary,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   item: {
     gap: spacing.px8,
