@@ -20,7 +20,7 @@ export default function WorkerDetailsScreen({ navigation, route }) {
   const [worker, setWorker] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [notFound, setNotFound] = useState(false); // 404: radnik je obrisan (meko brisanje)
+  const [notFound, setNotFound] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -30,7 +30,6 @@ export default function WorkerDetailsScreen({ navigation, route }) {
     try {
       setWorker(await getWorker(workerId));
     } catch (e) {
-      // Obrisan radnik: ponovni pokušaj bi opet dao 404, pa ne nudimo "Pokušaj ponovo".
       if (e.response?.status === 404) setNotFound(true);
       else setLoadError(e);
     } finally {

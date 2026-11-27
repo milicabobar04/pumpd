@@ -5,6 +5,7 @@ import PlaceholderScreen from '../screens/common/PlaceholderScreen';
 import ProfileScreen from '../screens/common/ProfileScreen';
 import { tabScreenOptions, tabIcon } from './tabOptions';
 import { MemberTrainingsStack } from './PlansStack';
+import MemberTrainersStack from './MemberTrainersStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,9 +30,12 @@ export default function MemberTabs() {
       />
       <Tab.Screen
         name="MemberTrainers"
-        component={PlaceholderScreen}
-        options={{ title: 'Pretraga trenera', tabBarIcon: tabIcon('search-outline', 'search') }}
-        initialParams={{ opis: 'Pretraga trenera, praćenje i recenzije', rute: '7.1–7.5', faza: 2 }}
+        component={MemberTrainersStack}
+        options={{
+          title: 'Pretraga trenera',
+          headerShown: false,
+          tabBarIcon: tabIcon('search-outline', 'search'),
+        }}
       />
       <Tab.Screen
         name="MemberProfile"

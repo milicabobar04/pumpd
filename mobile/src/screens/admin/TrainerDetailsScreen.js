@@ -19,7 +19,7 @@ export default function TrainerDetailsScreen({ navigation, route }) {
   const [trainer, setTrainer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [notFound, setNotFound] = useState(false); // 404: trener je obrisan (meko brisanje)
+  const [notFound, setNotFound] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
@@ -29,7 +29,6 @@ export default function TrainerDetailsScreen({ navigation, route }) {
     try {
       setTrainer(await getTrainer(trainerId));
     } catch (e) {
-      // Obrisan trener: ponovni pokušaj bi opet dao 404, pa ne nudimo "Pokušaj ponovo".
       if (e.response?.status === 404) setNotFound(true);
       else setLoadError(e);
     } finally {
