@@ -187,10 +187,21 @@ paths:
   /users/training-history:
     get:
       summary: Pregled prethodnih treninga (SU-24) 
+      description: >
+        Samo MEMBER. Istorija prijavljenog člana, od najnovijeg treninga (u istom danu po vremenu
+        početka). GROUP je završen grupni termin (početak + trajanje prije sadašnjeg trenutka) na koji
+        je član bio prijavljen; trainingId je id termina, name naziv grupe. Ostaje i ako je trener u
+        međuvremenu obrisan. SOLO je završen dolazak u teretanu (11.8, 11.9): evidentiran izlazak, ili
+        ulazak prije današnjeg dana bez izlaska; trainingId je id dolaska, name "Samostalni trening".
+        Dolazak koji se vremenski preklapa sa grupnim terminom ne prikazuje se posebno (član je došao
+        na taj trening, pa se ne broji dvaput); dolazak bez izlaska računa se do kraja dana ulaska.
+        Jutarnji samostalni i večernji grupni trening istog dana su dva treninga.
+        Trenutni boravak u teretani i trening koji još traje nisu u istoriji. trainingId je jedinstven
+        tek zajedno sa type. Bez paginacije.
       tags: [ Nalog i profil ]
       responses:
         '200':
-          description: Lista treninga
+          description: Lista treninga (prazan niz ako nema treninga)
           content:
             application/json:
               schema:
@@ -198,10 +209,14 @@ paths:
                 items:
                   type: object
                   properties:
-                    trainingId: { type: integer }
-                    name: { type: string }
-                    date: { type: string, format: date }
+                    trainingId: { type: integer, example: 12 }
+                    name: { type: string, example: Pilates }
+                    date: { type: string, format: date, example: '2026-11-24' }
                     type: { type: string, enum: [SOLO, GROUP] }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   # ==========================================
   # 3. Planovi treninga
@@ -1193,14 +1208,25 @@ paths:
   /group-trainings:
     get:
       summary: Pregled termina grupnih treninga (SU-18, SU-43) 
+      description: >
+        MEMBER i WORKER. Termini aktivnih trenera, sortirani po vremenu početka. Bez date: termini od
+        početka današnjeg dana nadalje; sa date: termini tog dana (i oni koji su već prošli).
+        trainerId daje samo termine tog trenera (nepostojeći trener daje prazan niz). name je naziv
+        grupe termina, enrolledCount broj prihvaćenih članova (zahtjevi na čekanju ne zauzimaju
+        mjesto), maxMembers kapacitet. enrollmentStatus postoji samo za MEMBER i pokazuje stanje
+        prijavljenog člana: NONE (nema zahtjeva, ili se odjavio), PENDING (zahtjev čeka trenera),
+        ACCEPTED (prijavljen), REJECTED (trener je odbio; član može poslati novi zahtjev).
+        Za WORKER polje enrollmentStatus izostaje. Bez paginacije.
       tags: [ Grupni treninzi ]
       parameters:
         - name: date
           in: query
           required: false
+          description: Dan u obliku YYYY-MM-DD
           schema:
             type: string
             format: date
+            example: '2026-12-01'
         - name: trainerId
           in: query
           required: false
@@ -1208,7 +1234,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: Lista termina
+          description: Lista termina (prazan niz ako nema termina)
           content:
             application/json:
               schema:
@@ -1216,20 +1242,38 @@ paths:
                 items:
                   type: object
                   properties:
-                    sessionId: { type: integer }
-                    groupId: { type: integer }
-                    name: { type: string }
-                    trainerId: { type: integer }
-                    trainerName: { type: string }
-                    startTime: { type: string, format: date-time }
-                    durationMinutes: { type: integer }
-                    enrolledCount: { type: integer }
-                    maxMembers: { type: integer }
-                    enrollmentStatus: { type: string, enum: [NONE, PENDING, ACCEPTED, REJECTED] }
+                    sessionId: { type: integer, example: 12 }
+                    groupId: { type: integer, example: 7 }
+                    name: { type: string, example: Pilates }
+                    trainerId: { type: integer, example: 3 }
+                    trainerName: { type: string, example: Marko Markovic }
+                    startTime: { type: string, format: date-time, example: '2026-12-01T18:00:00' }
+                    durationMinutes: { type: integer, example: 60 }
+                    enrolledCount: { type: integer, example: 4 }
+                    maxMembers: { type: integer, example: 10 }
+                    enrollmentStatus:
+                      type: string
+                      enum: [NONE, PENDING, ACCEPTED, REJECTED]
+                      description: Samo za MEMBER; za WORKER polje izostaje
+        '400':
+          description: date nije u obliku YYYY-MM-DD ili trainerId nije cijeli broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /group-trainings/{sessionId}/enrollment:
     post:
       summary: Slanje zahtjeva za prijavu na termin (SU-19) 
+      description: >
+        Samo MEMBER. Tijelo zahtjeva je prazno. Kreira zahtjev na čekanju (PENDING) koji trener vidi u
+        10.12, a trener dobija obavještenje. Praćenje trenera nije uslov. Ako je raniji zahtjev odbijen
+        (ili se član odjavio), isti zahtjev se vraća na čekanje sa istim requestId i današnjim datumom.
+        Zahtjev na čekanju ne zauzima mjesto; kapacitet se ponovo provjerava kad trener prihvata (10.13).
       tags: [ Grupni treninzi ]
       parameters:
         - name: sessionId
@@ -1245,15 +1289,38 @@ paths:
               schema:
                 type: object
                 properties:
-                  requestId: { type: integer }
+                  requestId: { type: integer, example: 41 }
                   status: { type: string, enum: [PENDING] }
-                  message: { type: string }
+                  message: { type: string, example: Zahtjev za prijavu je poslat. }
+        '400':
+          description: '"Termin je vec poceo." (prijava na termin koji je počeo ili prošao), ili sessionId nije broj'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: '"Termin ne postoji." (i za termin obrisanog trenera)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          $ref: '#/components/responses/Error'
+          description: '"Termin je popunjen." (svi kapaciteti zauzeti prihvaćenim članovima), "Zahtjev je vec poslat." ili "Vec ste prijavljeni na termin."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       summary: Odjava sa termina (SU-20) 
+      description: >
+        Samo MEMBER. Zahtjev na čekanju se povlači ("Zahtjev za prijavu je povucen."). Prihvaćen član
+        se odjavljuje sa termina i uklanja iz grupe ("Odjavljeni ste sa termina."), a trener dobija
+        obavještenje; mjesto se oslobađa. Odjava sa termina koji je počeo nije moguća. Termin obrisanog
+        trenera ne smeta odjavi.
       tags: [ Grupni treninzi ]
       parameters:
         - name: sessionId
@@ -1263,15 +1330,29 @@ paths:
             type: integer
       responses:
         '200':
-          description: Odjava uspješna
+          description: Odjava uspješna ili zahtjev povučen
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message: { type: string }
+                  message: { type: string, example: Odjavljeni ste sa termina. }
+        '400':
+          description: '"Termin je vec poceo, odjava nije moguca." ili sessionId nije broj'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: '"Niste prijavljeni na termin niti imate zahtjev na cekanju." (i za odbijen zahtjev ili nepostojeći termin)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==========================================
   # 10. Trener – praćenje, termini i grupe
@@ -1650,6 +1731,11 @@ paths:
   /trainer/group-requests:
     get:
       summary: Pregled zahtjeva za grupne treninge (SU-41) 
+      description: >
+        Samo TRAINER. Zahtjevi na čekanju (poslati preko 9.2) za termine prijavljenog trenera koji još
+        nisu počeli, bez obrisanih članova. Sortirano po početku termina, pa po datumu zahtjeva (stariji
+        prvi). sessionName je naziv grupe; enrolledCount i maxMembers pokazuju ima li mjesta.
+        sessionId tuđeg ili nepostojećeg termina daje prazan niz.
       tags: [ Trener ]
       parameters:
         - name: sessionId
@@ -1659,7 +1745,7 @@ paths:
             type: integer
       responses:
         '200':
-          description: Lista zahtjeva
+          description: Lista zahtjeva (prazan niz ako nema zahtjeva)
           content:
             application/json:
               schema:
@@ -1667,19 +1753,34 @@ paths:
                 items:
                   type: object
                   properties:
-                    requestId: { type: integer }
-                    memberId: { type: integer }
-                    memberName: { type: string }
-                    sessionId: { type: integer }
-                    sessionName: { type: string }
-                    startTime: { type: string, format: date-time }
-                    enrolledCount: { type: integer }
-                    maxMembers: { type: integer }
-                    requestDate: { type: string, format: date }
+                    requestId: { type: integer, example: 41 }
+                    memberId: { type: integer, example: 25 }
+                    memberName: { type: string, example: Ana Anic }
+                    sessionId: { type: integer, example: 12 }
+                    sessionName: { type: string, example: Pilates }
+                    startTime: { type: string, format: date-time, example: '2026-12-01T18:00:00' }
+                    enrolledCount: { type: integer, example: 4 }
+                    maxMembers: { type: integer, example: 10 }
+                    requestDate: { type: string, format: date, example: '2026-11-25' }
+        '400':
+          description: sessionId nije cijeli broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /trainer/group-requests/{requestId}:
     patch:
       summary: Upravljanje zahtjevima za grupne treninge (SU-42) 
+      description: >
+        Samo TRAINER, za zahtjeve na svoje termine. ACCEPTED prijavljuje člana na termin i dodaje ga u
+        grupu ("Zahtjev je prihvacen."), uz ponovnu provjeru kapaciteta; REJECTED odbija zahtjev
+        ("Zahtjev je odbijen.") i moguć je i kad je termin pun. Član u oba slučaja dobija obavještenje.
+        Odbijen član može poslati novi zahtjev (9.2), sa istim requestId.
       tags: [ Trener ]
       parameters:
         - name: requestId
@@ -1693,6 +1794,7 @@ paths:
           application/json:
             schema:
               type: object
+              required: [ status ]
               properties:
                 status: { type: string, enum: [ACCEPTED, REJECTED] }
       responses:
@@ -1703,11 +1805,29 @@ paths:
               schema:
                 type: object
                 properties:
-                  message: { type: string }
+                  message: { type: string, example: Zahtjev je prihvacen. }
+        '400':
+          description: status nedostaje ili nije ACCEPTED ili REJECTED, tijelo nije ispravan JSON, ili requestId nije broj
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/Error'
+          description: '"Zahtjev ne postoji." (i za tuđi zahtjev, povučen zahtjev ili zahtjev obrisanog člana)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          $ref: '#/components/responses/Error'
+          description: '"Grupa je popunjena." (samo za ACCEPTED), "Zahtjev je vec obradjen." ili "Termin je vec poceo."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==========================================
   # 11. Zaposleni – upravljanje članovima

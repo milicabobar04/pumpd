@@ -65,6 +65,13 @@ public class ClanNaTerminu {
 	{
 		this.status=status;
 	}
+
+	/** 9.2: novi zahtjev nakon odbijanja ili otkazivanja koristi isti red (isti requestId). */
+	public void ponoviZahtjev(LocalDate datumZahtjeva)
+	{
+		this.status=StatusPrijave.NA_CEKANJU;
+		this.datumZahtjeva=datumZahtjeva;
+	}
 	public ClanNaTerminuId getId() {
 		return id;
 	}
