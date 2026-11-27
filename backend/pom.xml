@@ -123,6 +123,15 @@
 			<artifactId>testcontainers-mysql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Samo za testove: provjera da stvarni odgovori backenda odgovaraju docs/openapi.yaml.
+		     Koristi se osnovni dio (core), jer je preveden za Javu 8+ (projekat je na Javi 17);
+		     veza sa MockMvc-om je u testu (OpenApiProvjera). -->
+		<dependency>
+			<groupId>com.atlassian.oai</groupId>
+			<artifactId>swagger-request-validator-core</artifactId>
+			<version>2.46.1</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

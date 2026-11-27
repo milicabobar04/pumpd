@@ -5,14 +5,18 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.etf.pumpd.config.SecurityConfig;
+import org.etf.pumpd.dto.ObavjestenjeDto;
 import org.etf.pumpd.enums.Uloga;
 import org.etf.pumpd.exception.ResursNijePronadjenException;
 import org.etf.pumpd.security.JsonAccessDeniedHandler;
@@ -71,6 +75,19 @@ class ObavjestenjeControllerTest {
 
     private static String bearer(Uloga uloga) {
         return "Bearer token-" + uloga.name();
+    }
+
+    @Test
+    void vrijemeObavjestenjaJeUvijekSaSekundama() throws Exception {
+        // 6.1, ugovor: "date": "YYYY-MM-DDTHH:mm:ss" (i kad su sekunde ili minute 0)
+        when(obavjestenjeService.mojaObavjestenja(idNaloga(Uloga.MEMBER))).thenReturn(List.of(
+                new ObavjestenjeDto(1, "Prvo", LocalDateTime.of(2026, 11, 24, 18, 0), false),
+                new ObavjestenjeDto(2, "Drugo", LocalDateTime.of(2026, 11, 24, 9, 5, 7), true)));
+
+        mockMvc.perform(get(RUTA).header(HttpHeaders.AUTHORIZATION, bearer(Uloga.MEMBER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].date").value("2026-11-24T18:00:00"))
+                .andExpect(jsonPath("$[1].date").value("2026-11-24T09:05:07"));
     }
 
     @Test
