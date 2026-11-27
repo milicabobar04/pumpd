@@ -1,0 +1,51 @@
+# pumpd: backend i baza za odbranu (laptop + telefoni na istoj mreži).
+# Pokretanje iz korijena projekta: docker compose up -d --build
+# Prije prvog pokretanja: kopirati .env.example u .env i upisati svoje vrijednosti (docs/odbrana.md).
+name: pumpd
+
+services:
+  baza:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: pumpd
+      MYSQL_USER: ${DB_USER:?Postavi DB_USER u .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Postavi DB_PASSWORD u .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Postavi DB_ROOT_PASSWORD u .env}
+      TZ: ${TZ:-Europe/Sarajevo}
+    # Triggeri iz migracije V3 se prave korisnikom bez SUPER prava, a MySQL to uz binarni log
+    # dozvoljava samo sa ovom opcijom (isto kao u integracionim testovima).
+    command: ["--log-bin-trust-function-creators=1"]
+    volumes:
+      - baza-podaci:/var/lib/mysql
+    # Port baze se ne otvara prema mreži: bazu vidi samo backend (unutrašnja Docker mreža).
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      baza:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://baza:3306/pumpd?useUnicode=true&characterEncoding=utf8
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Postavi JWT_SECRET u .env (openssl rand -base64 32)}
+      SLIKE_FOLDER: /var/pumpd/slike
+      # Ista vremenska zona kao baza: termini, dolasci i obavještenja koriste lokalno vrijeme.
+      TZ: ${TZ:-Europe/Sarajevo}
+    volumes:
+      - slike:/var/pumpd/slike
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  baza-podaci:
+  slike:

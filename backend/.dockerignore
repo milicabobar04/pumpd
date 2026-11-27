@@ -1,0 +1,10 @@
+# U kontejner ide samo ono što treba za pravljenje .jar fajla.
+target/
+uploads/
+.settings/
+.classpath
+.project
+.idea/
+.github/
+docs/
+*.log
