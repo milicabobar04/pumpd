@@ -64,6 +64,12 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/posts/my-posts").hasRole("TRAINER")
 				.requestMatchers(HttpMethod.POST, "/api/posts").hasRole("TRAINER")
 				.requestMatchers(HttpMethod.DELETE, "/api/posts/*").hasRole("TRAINER")
+				// grupni treninzi (9.x): pregled termina i član i radnik, prijava i odjava samo član;
+				// obrada zahtjeva (10.12, 10.13) je pod /api/trainer/** (TRAINER)
+				.requestMatchers(HttpMethod.GET, "/api/group-trainings").hasAnyRole("MEMBER", "WORKER")
+				.requestMatchers("/api/group-trainings/*/enrollment").hasRole("MEMBER")
+				// 2.4: ostale /api/users/... rute (profil, lozinka) važe za sve uloge
+				.requestMatchers(HttpMethod.GET, "/api/users/training-history").hasRole("MEMBER")
 				.anyRequest().authenticated());
 
 		return http.build();

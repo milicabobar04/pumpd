@@ -25,4 +25,8 @@ public interface ClanUGrupiRepository extends JpaRepository<ClanUGrupi,ClanUGrup
 	@Query("DELETE FROM ClanUGrupi cg WHERE cg.grupa.id = :idGrupe")
 	int obrisiSveIzGrupe(@Param("idGrupe")Integer idGrupe);
 	
+
+	/** 9.1: broj članova po grupi za više grupa jednim upitom; red = [id grupe, broj]. Grupa bez članova nema red. */
+	@Query("SELECT cg.grupa.id, COUNT(cg) FROM ClanUGrupi cg WHERE cg.grupa.id IN :idGrupa GROUP BY cg.grupa.id")
+	List<Object[]> brojClanovaPoGrupama(@Param("idGrupa") Collection<Integer> idGrupa);
 }

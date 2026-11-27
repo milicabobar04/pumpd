@@ -30,4 +30,15 @@ public interface DolazakRepository extends JpaRepository<Dolazak, Integer> {
 			  AND d.vrijemeUlaska >= :od
 			""")
 	long brojPrisutnihOd(@Param("od") LocalDateTime od);
+
+	/**
+	 * 2.4: završeni boravci člana - sa evidentiranim izlaskom, ili započeti prije današnjeg dana
+	 * (izlazak nije evidentiran). Današnji otvoreni boravak (član je još u teretani) se ne vraća.
+	 */
+	@Query("""
+			SELECT d FROM Dolazak d
+			WHERE d.clan.id = :idClana
+			  AND (d.vrijemeIzlaska IS NOT NULL OR d.vrijemeUlaska < :pocetakDana)
+			""")
+	List<Dolazak> zavrseniBoravci(@Param("idClana") Integer idClana, @Param("pocetakDana") LocalDateTime pocetakDana);
 }

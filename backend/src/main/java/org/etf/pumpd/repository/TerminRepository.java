@@ -34,4 +34,23 @@ public interface TerminRepository extends JpaRepository<Termin,Integer> {
 	List<Termin> terminiTrenera(@Param("idTrenera")Integer idTrenera);
 	
 	
+
+	/**
+	 * 9.1: termini aktivnih trenera od "od" (uključivo) do "doVremena" (isključivo, null = bez kraja),
+	 * opciono samo jednog trenera. Grupa, trener i nalog se učitavaju odmah (naziv, ime i kapacitet).
+	 */
+	@Query("""
+			SELECT t FROM Termin t JOIN FETCH t.grupa JOIN FETCH t.trener tr JOIN FETCH tr.nalog n
+			WHERE n.aktivan = true
+			  AND t.vrijeme >= :od
+			  AND (:do IS NULL OR t.vrijeme < :do)
+			  AND (:idTrenera IS NULL OR tr.id = :idTrenera)
+			ORDER BY t.vrijeme, t.id
+			""")
+	List<Termin> pregledTermina(@Param("od") LocalDateTime od, @Param("do") LocalDateTime doVremena,
+			@Param("idTrenera") Integer idTrenera);
+
+	/** 9.2, 9.3: termin sa grupom, trenerom i njegovim nalogom (ime za obavještenje, provjera aktivnosti). */
+	@Query("SELECT t FROM Termin t JOIN FETCH t.grupa JOIN FETCH t.trener tr JOIN FETCH tr.nalog WHERE t.id = :id")
+	Optional<Termin> saGrupomITrenerom(@Param("id") Integer id);
 }
