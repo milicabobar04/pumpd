@@ -24,7 +24,6 @@ const STATUS_COLORS = {
 
 const statusLabel = (status) => STATUS_LABELS[status] || status || '–';
 
-// Poruka sa servera, osim generičke "string" koju vraća Prism mock (primjer iz šeme).
 const serverMessage = (message) =>
   typeof message === 'string' && message.trim() && message !== 'string' ? message : null;
 
@@ -123,8 +122,6 @@ export default function IssuesScreen() {
     setUpdateError(null);
     try {
       const result = await updateIssueStatus(issue.issueId, { status });
-      // Prikazuje se status koji je administrator izabrao. Prism mock uvijek vraća prvu
-      // enum vrijednost (UNPROCESSED), a pravi backend vraća upravo poslani status.
       setIssues((list) =>
         (list || []).map((i) => (i.issueId === issue.issueId ? { ...i, status } : i)),
       );

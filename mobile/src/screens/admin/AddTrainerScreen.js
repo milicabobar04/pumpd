@@ -48,7 +48,7 @@ export default function AddTrainerScreen({ navigation }) {
           name: form.name.trim(),
           surname: form.surname.trim(),
           email: form.email.trim(),
-          biography: form.biography.trim() || null, // prazna biografija ide kao null
+          biography: form.biography.trim() || null,
         }),
       );
     } catch (e) {

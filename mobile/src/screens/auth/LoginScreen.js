@@ -15,8 +15,6 @@ import { theme, cardSizes } from '../../theme';
 const { colors, spacing, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
 
-// Ista poruka za nepostojeći email i pogrešnu lozinku,
-// da se iz aplikacije ne bi moglo saznati koji email ima nalog.
 const INVALID_CREDENTIALS = 'Pogrešan email ili lozinka.';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -28,9 +26,6 @@ function validate({ email, password }) {
   return errors;
 }
 
-// SU-03: prijava na sistem (POST /auth/login).
-// Poslije uspješne prijave RootNavigator sam prebacuje korisnika u dio za njegovu ulogu,
-// jer se mijenja isSignedIn/role u AuthContext-u. Ovdje nema navigation.navigate(...).
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -55,8 +50,7 @@ export default function LoginScreen({ navigation }) {
     setSubmitError(null);
     try {
       const response = await login(form.email.trim(), form.password);
-      // Ekran se odmah demontira (RootNavigator prikazuje dio za ulogu),
-      // pa se poslije ovoga više ne poziva setState.
+
       await signIn(response);
     } catch (e) {
       const status = e?.response?.status;

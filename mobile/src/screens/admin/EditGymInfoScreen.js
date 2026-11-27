@@ -31,11 +31,9 @@ const EMPTY_FORM = {
   workingHours: '',
 };
 
-// Poruka sa servera, osim generičke "string" koju vraća Prism mock (primjer iz šeme).
 const serverMessage = (message) =>
   typeof message === 'string' && message.trim() && message !== 'string' ? message : null;
 
-// Podaci sa servera -> tekst u poljima forme
 function toForm(info) {
   const price = info?.membershipPrice;
   return {
