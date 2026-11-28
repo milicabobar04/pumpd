@@ -14,6 +14,7 @@ import WorkerStack from './WorkerStack';
 import AdminStack from './AdminStack';
 import MyMembershipScreen from '../screens/member/MyMembershipScreen';
 import GymOccupancyScreen from '../screens/member/GymOccupancyScreen';
+import TrainerReviewsScreen from '../screens/trainer/TrainerReviewsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -95,6 +96,10 @@ export default function RootNavigator() {
                 <Stack.Screen name="MyMembership" component={MyMembershipScreen} options={{ title: 'Moja članarina' }} />
                 <Stack.Screen name="GymOccupancy" component={GymOccupancyScreen} options={{ title: 'Zauzetost teretane' }} />
               </>
+            ) : null}
+
+            {role === 'TRAINER' ? (
+              <Stack.Screen name="TrainerReviews" component={TrainerReviewsScreen} options={{ title: 'Moje recenzije' }} />
             ) : null}
 
             <Stack.Screen

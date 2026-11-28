@@ -324,6 +324,10 @@ export default function ProfileScreen({ navigation }) {
           </>
         ) : null}
 
+        {profile.role === 'TRAINER' ? (
+          <Button title="Moje recenzije" variant="action" onPress={() => navigation.navigate('TrainerReviews')} />
+        ) : null}
+
         <Button
           title="Prijavi problem"
           variant="action"

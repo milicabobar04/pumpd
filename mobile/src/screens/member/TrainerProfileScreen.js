@@ -2,10 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Button, ConfirmDialog, EmptyState, ErrorMessage, StarRating } from '../../components';
-import { theme, cards } from '../../theme';
+import { Button, ConfirmDialog, EmptyState, ErrorMessage, ReviewCard, StarRating } from '../../components';
+import { theme } from '../../theme';
 import { getTrainer, followTrainer, unfollowTrainer } from '../../services/trainersService';
-import { formatDate } from '../../utils/date';
 import { formatGrade } from '../../utils/grade';
 
 const { colors, spacing, borderRadius, typography } = theme;
@@ -29,25 +28,6 @@ const UNFOLLOW_DIALOG = {
     confirmLabel: 'Prekini',
   },
 };
-
-const ReviewItem = ({ review }) => (
-  <View style={styles.review}>
-    <View style={styles.reviewHeader}>
-      <Text style={[cards.review.title, styles.reviewName]} numberOfLines={1} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-        {review.memberName}
-      </Text>
-      <Text style={cards.review.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-        {formatDate(review.date)}
-      </Text>
-    </View>
-    <StarRating value={review.grade} size={18} color={colors.background} emptyColor={colors.gray500} />
-    {review.comment?.trim() ? (
-      <Text style={cards.review.body} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-        {review.comment}
-      </Text>
-    ) : null}
-  </View>
-);
 
 export default function TrainerProfileScreen({ navigation, route }) {
   const { trainerId, reviewMessage } = route.params;
@@ -245,7 +225,7 @@ export default function TrainerProfileScreen({ navigation, route }) {
             style={styles.emptyReviews}
           />
         ) : (
-          trainer.reviews.map((review) => <ReviewItem key={review.reviewId} review={review} />)
+          trainer.reviews.map((review) => <ReviewCard key={review.reviewId} review={review} />)
         )}
       </ScrollView>
 
@@ -283,7 +263,4 @@ const styles = StyleSheet.create({
   noticeText: { ...typography.body, color: colors.primary, flex: 1 },
   reviewButton: { alignSelf: 'center' },
   emptyReviews: { flexGrow: 0, paddingVertical: spacing.px16 },
-  review: { ...cards.review.container, gap: spacing.px6 },
-  reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.px8 },
-  reviewName: { flex: 1 },
 });

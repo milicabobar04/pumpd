@@ -16,6 +16,12 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '../../services/notificationsService';
+import { useAuth } from '../../context/AuthContext';
+import {
+  FollowRequestsSection,
+  useFollowRequests,
+  hasFollowRequestsContent,
+} from '../trainer/FollowRequestsSection';
 
 const { colors, fonts, spacing, borderRadius, typography } = theme;
 const MAX_FONT_SCALE = 1.3;
@@ -104,6 +110,12 @@ export default function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
+  // Trener na vrhu vidi i zahtjeve za praćenje (SU-32, SU-33). Za ostale uloge hook ne radi ništa.
+  const { role } = useAuth();
+  const isTrainer = role === 'TRAINER';
+  const followRequests = useFollowRequests(isTrainer);
+  const { reload: reloadFollowRequests, refresh: refreshFollowRequests } = followRequests;
+
   const loadNotifications = useCallback(async () => {
     setLoadError(null);
     try {
@@ -113,9 +125,10 @@ export default function NotificationsScreen() {
     }
   }, []);
 
+  // Obavještenja i zahtjevi se učitavaju nezavisno: greška jedne rute ne sakriva drugu sekciju
   useEffect(() => {
-    loadNotifications().finally(() => setLoading(false));
-  }, [loadNotifications]);
+    Promise.allSettled([loadNotifications(), reloadFollowRequests()]).finally(() => setLoading(false));
+  }, [loadNotifications, reloadFollowRequests]);
 
   const retry = async () => {
     setLoading(true);
@@ -125,7 +138,7 @@ export default function NotificationsScreen() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await loadNotifications();
+    await Promise.allSettled([loadNotifications(), refreshFollowRequests()]);
     setRefreshing(false);
   };
 
@@ -164,7 +177,8 @@ export default function NotificationsScreen() {
     );
   }
 
-  if (!notifications) {
+  // Trener i bez obavještenja vidi zahtjeve; greška obavještenja je tada u listi ispod njih
+  if (!notifications && !isTrainer) {
     return (
       <View style={styles.screen}>
         <ErrorMessage error={loadError} onRetry={retry} />
@@ -172,29 +186,49 @@ export default function NotificationsScreen() {
     );
   }
 
-  const hasUnread = notifications.some((n) => n.isSeen === false);
+  const notificationsFailed = !notifications;
+  const hasUnread = (notifications ?? []).some((n) => n.isSeen === false);
+
+  const standardHeader =
+    (loadError && !notificationsFailed) || hasUnread ? (
+      <View style={styles.header}>
+        {loadError && !notificationsFailed ? <ErrorMessage error={loadError} inline style={styles.inlineError} /> : null}
+        {hasUnread ? <MarkAllReadButton onPress={markAllAsRead} /> : null}
+      </View>
+    ) : null;
+
+  const showFollowRequests = isTrainer && hasFollowRequestsContent(followRequests);
 
   return (
     <View style={styles.screen}>
       <FlatList
-        data={notifications}
+        data={notifications ?? []}
         keyExtractor={(item, index) => String(item.notificationId ?? index)}
         renderItem={({ item }) => <NotificationItem item={item} onPress={markOneAsRead} />}
         contentContainerStyle={styles.content}
         ListHeaderComponent={
-          loadError || hasUnread ? (
+          showFollowRequests ? (
             <View style={styles.header}>
-              {loadError ? <ErrorMessage error={loadError} inline style={styles.inlineError} /> : null}
-              {hasUnread ? <MarkAllReadButton onPress={markAllAsRead} /> : null}
+              <FollowRequestsSection state={followRequests} />
+              <Text style={styles.sectionTitle} accessibilityRole="header" maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                Obavještenja
+              </Text>
+              {standardHeader}
             </View>
-          ) : null
+          ) : (
+            standardHeader
+          )
         }
         ListEmptyComponent={
-          <EmptyState
-            icon="notifications-off-outline"
-            title="Nema obavještenja"
-            message="Ovdje će se pojaviti nova obavještenja."
-          />
+          notificationsFailed ? (
+            <ErrorMessage error={loadError} onRetry={retry} />
+          ) : (
+            <EmptyState
+              icon="notifications-off-outline"
+              title="Nema obavještenja"
+              message="Ovdje će se pojaviti nova obavještenja."
+            />
+          )
         }
         refreshControl={
           <RefreshControl
@@ -229,6 +263,10 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.px8,
+  },
+  sectionTitle: {
+    ...typography.sectionTitle,
+    marginTop: spacing.px12,
   },
   markAll: {
     flexDirection: 'row',
